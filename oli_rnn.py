@@ -134,7 +134,7 @@ ax2.set_title("Expected output", fontsize = 16)
 
 ax3 = plt.subplot(224)
 ax3.plot(range(0, len(x[0,:,:])*dt,dt), model_output[trial_nb,:,:])
-ax3.set_xlabel("Time (ms)". fontsize = 16)
+ax3.set_xlabel("Time (ms)", fontsize = 16)
 ax3.set_title("Output", fontsize = 16)
 
 ax4 = plt.subplot(223)
@@ -183,7 +183,21 @@ choice = [train_params[i]['choice'] for i in range (length)]
 
 fig4 = plt.figure()
 plt.scatter(coherence, choice)
-    
+
+#%%
+
+fig3 = plt.figure()
+ax1 = plt.subplot(211)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:40])
+ax1.set_xlabel("Time (ms)", fontsize = 16)
+ax1.set_title("State of each neuron", fontsize = 16)
+
+ax2 = plt.subplot(212)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:80])
+ax2.set_xlabel("Time (ms)", fontsize = 16)
+ax2.set_title("State of each neuron", fontsize = 16)
+
+
 #%%
 daleModel.destruct()
 
