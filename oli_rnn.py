@@ -39,7 +39,6 @@ dale_network_params['N_rec'] = N_rec # set the number of recurrent units in the 
 dale_network_params['name'] = name
 dale_network_params['N_in'] = N_in
 dale_network_params['N_out'] = N_out
-
 dale_network_params['dale_ratio'] = .8
 
 #=============================================================================
@@ -59,21 +58,13 @@ input_connectivity[nb_excn:nb_excn*2, 0] = 0
 input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
 input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
 
-pre_connect = np.zeros((nb_excn*(nb_excn+nb_inhn)))
-nb_of_random_connections = int(0.05*(len(pre_connect)))
-pre_connect[:nb_of_random_connections] = 1
-
-np.random.shuffle(pre_connect)
-rand_connect1 = np.array(np.split(pre_connect, indices_or_sections = nb_excn+nb_inhn))
-np.random.shuffle(pre_connect)
-rand_connect2 = np.array(np.split(pre_connect, indices_or_sections = nb_excn+nb_inhn))
+output_connectivity[:, nb_excn*2:N_rec] = 0
 
 
-
-rec_connectivity[nb_excn:nb_excn*2,:nb_excn] = rand_connect1[:nb_excn]
-rec_connectivity[:nb_excn,nb_excn:nb_excn*2] = rand_connect2[:nb_excn]
-rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn] = rand_connect1[nb_excn:]
-rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2] = rand_connect2[nb_excn:]
+rec_connectivity[nb_excn:nb_excn*2,:nb_excn-10] = 0
+rec_connectivity[:nb_excn,nb_excn:nb_excn*2-10] = 0
+rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-10] = 0
+rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2-10] = 0
 rec_connectivity[nb_excn:nb_excn*2, nb_excn*2:N_rec-nb_inhn] = 0
 rec_connectivity[:nb_excn, N_rec-nb_inhn:N_rec] = 0
 rec_connectivity[nb_excn*2:N_rec-nb_inhn, N_rec-nb_inhn:N_rec] = 0
@@ -82,7 +73,7 @@ rec_connectivity[N_rec-nb_inhn:N_rec, nb_excn*2:N_rec-nb_inhn] = 0
 dale_network_params['input_connectivity'] = input_connectivity
 dale_network_params['rec_connectivity'] = rec_connectivity
 dale_network_params['output_connectivity'] = output_connectivity
-#=============================================================================
+
 
 daleModel = Basic(dale_network_params)
 
@@ -90,7 +81,7 @@ daleModel = Basic(dale_network_params)
 
 train_params = {}
 train_params['save_weights_path'] =  None # Where to save the model after training. Default: None
-train_params['training_iters'] = 50000 # number of iterations to train for Default: 50000
+train_params['training_iters'] = 100000 # number of iterations to train for Default: 50000
 train_params['learning_rate'] = .001 # Sets learning rate if use default optimizer Default: .001
 train_params['loss_epoch'] = 10 # Compute and record loss every 'loss_epoch' epochs. Default: 10
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
@@ -116,7 +107,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 
 # ---------------------- Plot the results ---------------------------
-trial_nb = 1
+trial_nb = 12
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -126,7 +117,7 @@ fig2 = plt.figure(figsize=(20,8))
 ax1 = plt.subplot(221)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), x[trial_nb,:,:])
 ax1.set_title("Input", fontsize = 16)
-ax1.legend(["Output Channel 1", "Output Channel 2", 'go cue'])
+ax1.legend(["Input Channel 1", "Input Channel 2", 'go cue'])
 
 ax2 = plt.subplot(222)
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), y[trial_nb,:,:])
@@ -156,6 +147,7 @@ def plot_weights(weights, title="", xlabel= "", ylabel=""):
     plt.ylabel(ylabel)
     plt.colorbar()
     
+#%%    
 weights = daleModel.get_weights()
 fig12 = plt.figure(figsize = (10,10))
 ax1 = plt.subplot(111)
@@ -163,7 +155,7 @@ ax1 = plot_weights(weights['W_rec'],
              xlabel = 'From', 
              ylabel = 'To')
 
-#daleModel.save("weights/saved_weights_100")
+daleModel.save("weights/saved_weights_1")
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
@@ -171,7 +163,7 @@ plot_weights(weights['W_out'])
 
 #%%
 length = len(train_params)
-Acc
+
 for i in range(length):        
     if train_params[i]["direction"] == 0:
         train_params[i]["coherence"] = -train_params[i]["coherence"]
@@ -186,43 +178,34 @@ plt.scatter(coherence, choice)
 
 #%%
 
+#compare states of different neural populations
 fig3 = plt.figure()
 ax1 = plt.subplot(211)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:40])
-ax1.set_xlabel("Time (ms)", fontsize = 16)
-ax1.set_title("State of each neuron", fontsize = 16)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
+ax1.set_title("State of each neuron in H1", fontsize = 10)
 
 ax2 = plt.subplot(212)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:80])
-ax2.set_xlabel("Time (ms)", fontsize = 16)
-ax2.set_title("State of each neuron", fontsize = 16)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', alpha=0.6)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
+ax2.set_xlabel("Time (ms)", fontsize = 10)
+ax2.set_title("State of each neuron in H2", fontsize = 10)
+
+plt.tight_layout()
 
 
 #%%
-daleModel.destruct()
 
-
-#%%
-
-fig7 = plt.figure()
-
-ax1 = plt.subplot(2,1,1)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), x[trial_nb,:,:])
-ax1.set_title("Input")
-ax1.legend(["Output Channel 1", "Output Channel 2", 'go cue'])
-
-ax2 = plt.subplot(2,1,2)
-ax2.plot(range(0, len(y[0,:,:])*dt,dt), y[trial_nb,:,:])
-ax2.set_xlabel("Tme (ms)")
-ax2.legend(["stimulation"])
-fig7.tight_layout()
-
-#%%
-trial_nb = 7
+#plot the mask 
+trial_nb = 1
 fig8 = plt.figure(figsize=(10,4))
 ax1 = plt.subplot(111)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), mask[trial_nb,:,:], c = 'grey')
 ax1.set_title('Mask')
 
+#%%
+daleModel.destruct()
 
 
