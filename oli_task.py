@@ -57,7 +57,9 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         params = dict()
         
-        params['coherence'] = np.random.uniform(0.5, 1.0)
+        params['intensity'] = np.random.uniform(0.8, 1.4)
+        
+        params['coherence'] = np.random.uniform(params['intensity']/2, params['intensity'])
         params['direction'] = np.random.choice([0, 1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
@@ -84,6 +86,7 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         # Retrieve parameters
         # ----------------------------------
+        inte = params['intensity']
         coh = params['coherence']
         stim_onset = params['onset_time']
         stim_dur = params['stim_duration']
@@ -106,7 +109,7 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         if stim_onset < t < stim_onset + stim_dur:
             x_t[dire] += coh
-            x_t[1-dire] += (1 - coh)
+            x_t[1-dire] += (inte - coh)
         
         if t <= go_onset + post_cue:
             y_t =+ self.lo
