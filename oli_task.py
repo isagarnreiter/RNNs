@@ -99,7 +99,7 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         # Initialize with noise
         # ----------------------------------
-        x_t = np.sqrt(2*.01*np.sqrt(10)*np.sqrt(self.dt)*noise*noise)*np.random.randn(self.N_in)
+        x_t = np.sqrt(2*.01*np.sqrt(10)*np.sqrt(self.dt)*noise*noise)*np.random.randn(self.N_in) + 0.1
         x_t[2] = 0
 
         y_t = np.zeros(self.N_out)
@@ -141,3 +141,29 @@ class PerceptualDiscrimination(Task):
         chosen = np.argmax(np.mean(test_output*output_mask, axis=1), axis = 1)
         truth = np.argmax(np.mean(correct_output*output_mask, axis = 1), axis = 1)
         return np.mean(np.equal(truth, chosen))
+    
+    def psychometric_curve(self, correct_output, output_mask, train_params, bin_nb):
+        """Calculates the percentage of choice 1 made by the model, depending on the coherence between input 0 and 1.'
+        --> psychometric curve."""
+  
+        
+        coherence = []
+        
+        for i in range(len(train_params)):
+            coherence.append(train_params[i]['coherence']/train_params[i]['intensity'])
+            coherence[i] = coherence[i] - (1-coherence[i])
+            if train_params[i]['direction'] == 1:
+                coherence[i] = coherence[i]
+            else:
+                coherence[i] = - coherence[i]
+        
+        chosen = np.argmax(np.mean(correct_output*output_mask, axis=1), axis = 1)
+        
+        bins = np.linspace(-1, 1, bin_nb+1)
+        digitized = np.digitize(coherence, bins)
+        bin_means = np.array([chosen[digitized == i].mean() for i in range(1, len(bins))])
+        bin_means = bin_means*100
+        
+        
+        return bin_means
+                

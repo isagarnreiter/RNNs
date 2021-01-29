@@ -105,9 +105,9 @@ plt.title("Loss During Training")
 x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = daleModel.test(x) # run the model on input x
 
-
+#%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 12
+trial_nb = 0
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -135,6 +135,32 @@ ax4.set_title("State of each neuron", fontsize = 16)
 
 fig2.tight_layout()
 
+#%%
+
+#compare states of different neural populations
+fig3 = plt.figure()
+ax1 = plt.subplot(211)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
+ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
+ax1.set_title("State of each neuron in H1", fontsize = 10)
+
+ax2 = plt.subplot(212)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', alpha=0.6)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
+ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
+ax2.set_xlabel("Time (ms)", fontsize = 10)
+ax2.set_title("State of each neuron in H2", fontsize = 10)
+
+plt.tight_layout()
+
+
+#%%
+        
+bins = pd.psychometric_curve(y, mask, train_params, 8)
+
+plt.plot(bins)
+plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
 
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
@@ -159,51 +185,6 @@ daleModel.save("weights/saved_weights_1")
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
-
-
-#%%
-length = len(train_params)
-
-for i in range(length):        
-    if train_params[i]["direction"] == 0:
-        train_params[i]["coherence"] = -train_params[i]["coherence"]
-    train_params[i]['choice'] = np.argmax(model_output[i][199])
-    
-    
-coherence = [train_params[i]['coherence'] for i in range (length)]
-choice = [train_params[i]['choice'] for i in range (length)]
-
-fig4 = plt.figure()
-plt.scatter(coherence, choice)
-
-#%%
-
-#compare states of different neural populations
-fig3 = plt.figure()
-ax1 = plt.subplot(211)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
-ax1.set_title("State of each neuron in H1", fontsize = 10)
-
-ax2 = plt.subplot(212)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', alpha=0.6)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
-ax2.set_xlabel("Time (ms)", fontsize = 10)
-ax2.set_title("State of each neuron in H2", fontsize = 10)
-
-plt.tight_layout()
-
-
-#%%
-
-#plot the mask 
-trial_nb = 1
-fig8 = plt.figure(figsize=(10,4))
-ax1 = plt.subplot(111)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), mask[trial_nb,:,:], c = 'grey')
-ax1.set_title('Mask')
 
 #%%
 daleModel.destruct()
