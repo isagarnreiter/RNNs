@@ -14,6 +14,9 @@ from matplotlib import pyplot as plt
 import numpy as np
 import random
 from matplotlib.colors import Normalize
+from scipy.stats import lognorm
+from scipy.stats import norm
+
 %matplotlib inline
 seed=2020
 
@@ -185,6 +188,42 @@ daleModel.save("weights/saved_weights_1")
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
+
+#%%
+#trying to fit a lognormal curve to the distriubtion of weights
+
+weight_distrib = np.concatenate(weights['W_rec'][:, 0:nb_excn*2])
+weight_distrib = [i for i in weight_distrib if i != 0.0]
+
+stdev = np.std(weight_distrib)
+mean = np.mean(weight_distrib)
+
+fig = plt.figure()
+ax = plt.subplot(111)
+from scipy.stats import gaussian_kde
+density = gaussian_kde(weight_distrib)
+xs = np.linspace(0,0.6,150)
+density.covariance_factor = lambda : .25
+density._compute_covariance()
+ax.plot(xs,density(xs))
+ax.hist(weight_distrib, bins = 10, density = True)
+
+log_weights = np.log(weight_distrib)
+
+shape, loc, scale = lognorm.fit(weight_distrib, floc = -1)
+estimated_mu = np.log(scale)
+estimated_sigma = shape
+
+plt.hist(weight_distrib, bins=50, density=True)
+xmin = np.min(weight_distrib)
+xmax = np.max(weight_distrib)
+x = np.linspace(xmin, xmax, 200)
+pdf = lognorm.pdf(x, shape, scale = scale, loc = 0)
+plt.plot(x, pdf, 'k')
+plt.show()
+#%%
+
+loglo
 
 #%%
 daleModel.destruct()

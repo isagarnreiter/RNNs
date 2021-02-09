@@ -163,7 +163,6 @@ class PerceptualDiscrimination(Task):
         digitized = np.digitize(coherence, bins)
         bin_means = np.array([chosen[digitized == i].mean() for i in range(1, len(bins))])
         bin_means = bin_means*100
-        
-        
+    
         return bin_means
                 

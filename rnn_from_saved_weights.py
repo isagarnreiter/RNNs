@@ -15,7 +15,7 @@ from oli_task import PerceptualDiscrimination
 #%%
 
 weights = dict(np.load('./weights/saved_weights_1.npz', allow_pickle = True))
-weights['W_in'][:,0] = 0
+#weights['W_in'][:,0] = 0
 np.savez('./weights/modified_saved_weights.npz', **weights)
 
 #%%
@@ -47,7 +47,7 @@ input_connectivity = np.ones((N_rec, N_in))
 rec_connectivity = np.ones((N_rec, N_rec))
 output_connectivity = np.ones((N_out, N_rec))
 
-input_connectivity[0:nb_excn, 0] = 0
+input_connectivity[0:nb_excn, 1] = 0
 input_connectivity[nb_excn:nb_excn*2, 0] = 0
 input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
 input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
