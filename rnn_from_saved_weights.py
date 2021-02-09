@@ -15,7 +15,7 @@ from oli_task import PerceptualDiscrimination
 #%%
 
 weights = dict(np.load('./weights/saved_weights_1.npz', allow_pickle = True))
-#weights['W_in'][:,0] = 0
+#weights['W_in'][:,1] = 0
 np.savez('./weights/modified_saved_weights.npz', **weights)
 
 #%%
@@ -51,6 +51,9 @@ input_connectivity[0:nb_excn, 1] = 0
 input_connectivity[nb_excn:nb_excn*2, 0] = 0
 input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
 input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
+
+
+#input_connectivity[:, 1] = 0
 
 output_connectivity[:, nb_excn*2:N_rec] = 0
 
@@ -93,7 +96,7 @@ model_output, model_state = fileModel.test(x) # run the model on input x
 Accuracy = pd.accuracy_function(y, model_output, mask)
 
 #%%
-trial_nb = 15
+trial_nb = 10
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -128,6 +131,7 @@ ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
 ax1.set_title("State of each neuron in H1", fontsize = 10)
+ax1.set_ylim(-0.5, 0.5)
 
 ax2 = plt.subplot(212)
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', alpha=0.6)
@@ -135,6 +139,7 @@ ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue'
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
 ax2.set_xlabel("Time (ms)", fontsize = 10)
 ax2.set_title("State of each neuron in H2", fontsize = 10)
+ax2.set_ylim(-0.5, 0.5)
 
 plt.tight_layout()
 
