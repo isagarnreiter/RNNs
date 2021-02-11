@@ -7,7 +7,7 @@ Created on Wed Nov 18 16:47:02 2020
 #%%
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
+from weights_fct import plot_weights
 from psychrnn.backend.models.basic import Basic
 import tensorflow as tf0
 from oli_task import PerceptualDiscrimination
@@ -15,7 +15,14 @@ from oli_task import PerceptualDiscrimination
 #%%
 
 weights = dict(np.load('./weights/saved_weights_1.npz', allow_pickle = True))
-#weights['W_in'][:,1] = 0
+# =============================================================================
+# changes to be made to the weights
+# =============================================================================
+weights['W_in'][:,1] = 0
+
+# weights['W_rec'][:, 30:40] = 0
+# weights['W_rec'][:, 70:80] = 0
+
 np.savez('./weights/modified_saved_weights.npz', **weights)
 
 #%%
@@ -53,8 +60,6 @@ input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
 input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
 
 
-#input_connectivity[:, 1] = 0
-
 output_connectivity[:, nb_excn*2:N_rec] = 0
 
 rec_connectivity[nb_excn:nb_excn*2,:nb_excn-10] = 0
@@ -66,6 +71,17 @@ rec_connectivity[:nb_excn, N_rec-nb_inhn:N_rec] = 0
 rec_connectivity[nb_excn*2:N_rec-nb_inhn, N_rec-nb_inhn:N_rec] = 0
 rec_connectivity[N_rec-nb_inhn:N_rec, nb_excn*2:N_rec-nb_inhn] = 0
 
+
+# =============================================================================
+# changes to make to connectivity
+# =============================================================================
+input_connectivity[:, 1] = 0
+
+# rec_connectivity[:, 30:40] = 0
+# rec_connectivity[:, 70:80] = 0
+
+
+
 modif_network_params['input_connectivity'] = input_connectivity
 modif_network_params['rec_connectivity'] = rec_connectivity
 modif_network_params['output_connectivity'] = output_connectivity
@@ -75,15 +91,6 @@ modif_network_params['load_weights_path'] = './weights/modified_saved_weights.np
 fileModel = Basic(modif_network_params)
 
 
-#%%
-def plot_weights(weights, title="", xlabel= "", ylabel=""):
-    cmap = plt.set_cmap('RdBu_r')
-    img = plt.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.colorbar()
-    
 #%%
 weights = fileModel.get_weights()
 plot_weights(weights['W_rec'], xlabel = 'From', ylabel = 'To')
@@ -96,7 +103,7 @@ model_output, model_state = fileModel.test(x) # run the model on input x
 Accuracy = pd.accuracy_function(y, model_output, mask)
 
 #%%
-trial_nb = 10
+trial_nb = 13
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan

@@ -61,8 +61,8 @@ output_connectivity = np.ones((N_out, N_rec))
 input_connectivity[0:50, 1] = 0
 input_connectivity[nb_excn:nb_excn*2, 0] = 0
 input_connectivity[0:10, 0] = 0
-input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
-input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
+input_connectivity[nb_excn*2:N_rec, 1] = 0
+input_connectivity[nb_excn*2:N_rec, 0] = 0
 
 output_connectivity[:, nb_excn*2:N_rec] = 0
 
@@ -118,7 +118,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 1
+trial_nb = 2
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -181,7 +181,7 @@ plot_weights(weights['W_rec'],
              xlabel = 'From', 
              ylabel = 'To')
 
-daleModel.save("weights/saved_weights_1")
+daleModel.save("weights/saved_weights_3")
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])

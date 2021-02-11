@@ -13,9 +13,12 @@ from matplotlib import pyplot as plt
 
 import numpy as np
 import random
-from matplotlib.colors import Normalize
+
 from scipy.stats import lognorm
 from scipy.stats import norm
+
+from weights_fct import plot_weights
+
 
 %matplotlib inline
 seed=2020
@@ -110,7 +113,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 0
+trial_nb = 9
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -146,6 +149,7 @@ ax1 = plt.subplot(211)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
+ax1.set_ylim(-0.5,0.5)
 ax1.set_title("State of each neuron in H1", fontsize = 10)
 
 ax2 = plt.subplot(212)
@@ -153,6 +157,7 @@ ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', 
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
 ax2.set_xlabel("Time (ms)", fontsize = 10)
+ax2.set_ylim(-0.5,0.5)
 ax2.set_title("State of each neuron in H2", fontsize = 10)
 
 plt.tight_layout()
@@ -167,16 +172,7 @@ plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
 
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
-
-def plot_weights(weights, title="", xlabel= "", ylabel=""):
-    cmap = plt.set_cmap('RdBu_r')
-    img = plt.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.colorbar()
-    
-#%%    
+ 
 weights = daleModel.get_weights()
 fig12 = plt.figure(figsize = (10,10))
 ax1 = plt.subplot(111)
@@ -184,7 +180,7 @@ ax1 = plot_weights(weights['W_rec'],
              xlabel = 'From', 
              ylabel = 'To')
 
-daleModel.save("weights/saved_weights_1")
+daleModel.save("weights/saved_weights_2")
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
@@ -198,6 +194,8 @@ weight_distrib = [i for i in weight_distrib if i != 0.0]
 stdev = np.std(weight_distrib)
 mean = np.mean(weight_distrib)
 
+
+#just a gaussian fit
 fig = plt.figure()
 ax = plt.subplot(111)
 from scipy.stats import gaussian_kde
@@ -208,8 +206,7 @@ density._compute_covariance()
 ax.plot(xs,density(xs))
 ax.hist(weight_distrib, bins = 10, density = True)
 
-log_weights = np.log(weight_distrib)
-
+#the lognormal distrib fitted to the data but does not work
 shape, loc, scale = lognorm.fit(weight_distrib, floc = -1)
 estimated_mu = np.log(scale)
 estimated_sigma = shape
@@ -218,12 +215,21 @@ plt.hist(weight_distrib, bins=50, density=True)
 xmin = np.min(weight_distrib)
 xmax = np.max(weight_distrib)
 x = np.linspace(xmin, xmax, 200)
-pdf = lognorm.pdf(x, shape, scale = scale, loc = 0)
+pdf = lognorm.pdf(x, 1.8, scale = estimated_mu)
 plt.plot(x, pdf, 'k')
 plt.show()
-#%%
 
-loglo
+#normal distribution of the logarithms of the weights
+
+log_weights = np.log(weight_distrib)
+
+lmean = np.mean(log_weights)
+lstd = np.std(log_weights)
+x = np.linspace(-25, 0, 100)
+y = norm.pdf(x,lmean,lstd)
+
+plt.hist(log_weights, bins=50, alpha = 0.75, density=True)
+plt.plot(x,y, 'k', color='coral')
 
 #%%
 daleModel.destruct()
