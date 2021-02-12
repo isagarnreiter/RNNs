@@ -32,9 +32,9 @@ class PerceptualDiscrimination(Task):
 
         self.direction = direction
 
-        self.lo = 0.0 # Low value for one hot encoding
+        self.lo = 1.0 # Low value for one hot encoding
 
-        self.hi = 1.0 # High value for one hot encoding
+        self.hi = 2.0 # High value for one hot encoding
 
     def generate_trial_params(self, batch, trial):
         """Define parameters for each trial.

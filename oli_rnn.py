@@ -66,7 +66,6 @@ input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
 
 output_connectivity[:, nb_excn*2:N_rec] = 0
 
-
 rec_connectivity[nb_excn:nb_excn*2,:nb_excn-10] = 0
 rec_connectivity[:nb_excn,nb_excn:nb_excn*2-10] = 0
 rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-10] = 0
@@ -87,7 +86,7 @@ daleModel = Basic(dale_network_params)
 
 train_params = {}
 train_params['save_weights_path'] =  None # Where to save the model after training. Default: None
-train_params['training_iters'] = 100000 # number of iterations to train for Default: 50000
+train_params['training_iters'] = 200000 # number of iterations to train for Default: 50000
 train_params['learning_rate'] = .001 # Sets learning rate if use default optimizer Default: .001
 train_params['loss_epoch'] = 10 # Compute and record loss every 'loss_epoch' epochs. Default: 10
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
@@ -113,7 +112,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 9
+trial_nb = 10
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -149,7 +148,7 @@ ax1 = plt.subplot(211)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
-ax1.set_ylim(-0.5,0.5)
+ax1.set_ylim(-1,1)
 ax1.set_title("State of each neuron in H1", fontsize = 10)
 
 ax2 = plt.subplot(212)
@@ -157,7 +156,7 @@ ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', 
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
 ax2.set_xlabel("Time (ms)", fontsize = 10)
-ax2.set_ylim(-0.5,0.5)
+ax2.set_ylim(-1,1)
 ax2.set_title("State of each neuron in H2", fontsize = 10)
 
 plt.tight_layout()
@@ -165,7 +164,7 @@ plt.tight_layout()
 
 #%%
         
-bins = pd.psychometric_curve(y, mask, train_params, 8)
+bins = pd.psychometric_curve(y, mask, train_params,9)
 
 plt.plot(bins)
 plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
@@ -180,7 +179,7 @@ ax1 = plot_weights(weights['W_rec'],
              xlabel = 'From', 
              ylabel = 'To')
 
-daleModel.save("weights/saved_weights_2")
+daleModel.save("weights/saved_weights_1_2_output_3")
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
