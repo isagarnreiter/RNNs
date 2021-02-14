@@ -14,7 +14,7 @@ from oli_task import PerceptualDiscrimination
 
 #%%
 
-weights = dict(np.load('./weights/saved_weights_1_2_output_2.npz', allow_pickle = True))
+weights = dict(np.load('./weights/saved_weights_1_2_output.npz', allow_pickle = True))
 # =============================================================================
 # changes to be made to the weights
 # =============================================================================
