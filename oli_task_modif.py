@@ -58,8 +58,9 @@ class PerceptualDiscrimination(Task):
         params = dict()
         
         
-        params['coherence_0'] = np.random.choice([0.0, 0.1, 0.2, 0.3, 0.4])
-        params['coherence_1'] = np.random.choice([0.0, 0.1, 0.2, 0.3, 0.4])
+        params['coherence_0'] = np.random.choice([0.0, 0.0, 0.2, 0.4, 0.6])
+        params['coherence_1'] = np.random.choice([0.0, 0.0, 0.2, 0.4, 0.6])
+        params['random_output'] = np.random.choice([0,1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
         params['stim_duration'] = 500
@@ -87,6 +88,7 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         coh_0 = params['coherence_0']
         coh_1 = params['coherence_1']
+        rand_out = params['random_output']
         stim_onset = params['onset_time']
         stim_dur = params['stim_duration']
         noise = params['stim_noise']
@@ -127,9 +129,12 @@ class PerceptualDiscrimination(Task):
             elif coh_0 < coh_1:
                 y_t[0] = self.lo
                 y_t[1] = self.hi
+            elif coh_0 == coh_1 == 0.0:
+                y_t[0] = self.lo
+                y_t[1] = self.lo
             elif coh_0 == coh_1:
-                y_t[0] = 0.5
-                y_t[1] = 0.5
+                y_t[0] = rand_out
+                y_t[1] = 1-rand_out
 
         return x_t, y_t, mask_t
     
