@@ -1,0 +1,17 @@
+1. 
+
+Network with sparse connectivity, some input to neurons with colossal projections and some input to inhibitory neurons.
+
+Task 1: 
+stim range: 0.0 - 0.8
+one stimulus is larger than the other -> output(stronger stim) = 1 and output(weaker stim) = 0
+both stimuli are equal -> the network randomly chooses either one or the other output 
+When both stimuli = 0 -> both output go to 0
+
+
+
+2. 
+
+Network with sparse connectivity, no input to neurons with colossal projections, some input to inhibitory neurons.
+
+Task 1.
