@@ -56,10 +56,13 @@ class PerceptualDiscrimination(Task):
         # Define parameters of a trial
         # ----------------------------------
         params = dict()
-        
-        
-        params['coherence_0'] = np.random.choice([0.0, 0.0, 0.2, 0.4, 0.6])
-        params['coherence_1'] = np.random.choice([0.0, 0.0, 0.2, 0.4, 0.6])
+        if trial%8 == 0:
+           params['coherence_0'] = 0.0
+           params['coherence_1'] = 0.0
+        else:
+            choices = [0.0, 0.2, 0.4, 0.6]
+            params['coherence_0'] = np.random.choice(choices)
+            params['coherence_1'] = np.random.choice(choices)
         params['random_output'] = np.random.choice([0,1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
