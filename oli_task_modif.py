@@ -57,12 +57,12 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         params = dict()
         if trial%8 == 0:
-           params['coherence_0'] = 0.0
-           params['coherence_1'] = 0.0
+           params['intensity_0'] = 0.0
+           params['intensity_1'] = 0.0
         else:
             choices = [0.0, 0.2, 0.4, 0.6]
-            params['coherence_0'] = np.random.choice(choices)
-            params['coherence_1'] = np.random.choice(choices)
+            params['intensity_0'] = np.random.choice(choices)
+            params['intensity_1'] = np.random.choice(choices)
         params['random_output'] = np.random.choice([0,1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
@@ -89,8 +89,8 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         # Retrieve parameters
         # ----------------------------------
-        coh_0 = params['coherence_0']
-        coh_1 = params['coherence_1']
+        int_0 = params['intensity_0']
+        int_1 = params['intensity_1']
         rand_out = params['random_output']
         stim_onset = params['onset_time']
         stim_dur = params['stim_duration']
@@ -111,8 +111,8 @@ class PerceptualDiscrimination(Task):
         # Compute values
         # ----------------------------------
         if stim_onset < t < stim_onset + stim_dur:
-            x_t[0] += coh_0
-            x_t[1] += coh_1
+            x_t[0] += int_0
+            x_t[1] += int_1
         
         if t <= go_onset + post_cue:
             y_t =+ self.lo
@@ -126,16 +126,16 @@ class PerceptualDiscrimination(Task):
             
 
         if t > go_onset + post_cue:
-            if coh_0 > coh_1:
+            if int_0 > int_1:
                 y_t[0] = self.hi
                 y_t[1] = self.lo
-            elif coh_0 < coh_1:
+            elif int_0 < int_1:
                 y_t[0] = self.lo
                 y_t[1] = self.hi
-            elif coh_0 == coh_1 == 0.0:
+            elif int_0 == int_1 == 0.0:
                 y_t[0] = self.lo
                 y_t[1] = self.lo
-            elif coh_0 == coh_1:
+            elif int_0 == int_1:
                 y_t[0] = rand_out
                 y_t[1] = 1-rand_out
 

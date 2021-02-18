@@ -5,7 +5,7 @@ Created on Fri Nov 13 20:49:12 2020
 @author: Isabelle
 """
 
-from oli_task import PerceptualDiscrimination
+from oli_task_modif import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
 
 import tensorflow as tf
@@ -64,6 +64,13 @@ input_connectivity[nb_excn:nb_excn*2, 0] = 0
 input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
 input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
 
+#initialise sparse input connectivity
+input_connectivity[15:35, 0] = 0
+input_connectivity[80:85, 0] = 0
+input_connectivity[90:95, 1] = 0
+input_connectivity[55:75, 1] = 0
+
+
 output_connectivity[:, nb_excn*2:N_rec] = 0
 
 rec_connectivity[nb_excn:nb_excn*2,:nb_excn-10] = 0
@@ -96,7 +103,7 @@ train_params['optimizer'] = tf.compat.v1.train.AdamOptimizer(learning_rate=train
 train_params['clip_grads'] = True # If true, clip gradients by norm 1. Default: True
 
 # ---------------------- Train a basic model ---------------------------
-losses, initialTime, trainTime = daleModel.train(pd, train_params)
+losses, initialTime, trainTime = daleModel.train(pd, train_params) 
 
 fig1= plt.figure()
 plt.plot(losses)
@@ -112,7 +119,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 10
+trial_nb = 26
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -127,16 +134,19 @@ ax1.legend(["Input Channel 1", "Input Channel 2", 'go cue'])
 ax2 = plt.subplot(222)
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), y[trial_nb,:,:])
 ax2.set_title("Expected output", fontsize = 16)
+ax2.set_ylim(-0.1,1.1)
 
 ax3 = plt.subplot(224)
 ax3.plot(range(0, len(x[0,:,:])*dt,dt), model_output[trial_nb,:,:])
 ax3.set_xlabel("Time (ms)", fontsize = 16)
 ax3.set_title("Output", fontsize = 16)
+ax3.set_ylim(-0.1,1.1)
 
 ax4 = plt.subplot(223)
 ax4.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,:])
 ax4.set_xlabel("Time (ms)", fontsize = 16)
 ax4.set_title("State of each neuron", fontsize = 16)
+ax4.set_ylim(-0.5,0.5)
 
 fig2.tight_layout()
 
@@ -148,7 +158,7 @@ ax1 = plt.subplot(211)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
-ax1.set_ylim(-1,1)
+ax1.set_ylim(-0.5,0.5)
 ax1.set_title("State of each neuron in H1", fontsize = 10)
 
 ax2 = plt.subplot(212)
@@ -156,7 +166,7 @@ ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', 
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
 ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
 ax2.set_xlabel("Time (ms)", fontsize = 10)
-ax2.set_ylim(-1,1)
+ax2.set_ylim(-0.5,0.5)
 ax2.set_title("State of each neuron in H2", fontsize = 10)
 
 plt.tight_layout()
@@ -173,16 +183,15 @@ plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
 # ---------------------- Save and plot the weights of the network ---------------------------
  
 weights = daleModel.get_weights()
-fig12 = plt.figure(figsize = (10,10))
-ax1 = plt.subplot(111)
-ax1 = plot_weights(weights['W_rec'],  
-             xlabel = 'From', 
-             ylabel = 'To')
 
-daleModel.save("weights/saved_weights_1_2_output_3")
+plot_weights(weights['W_rec'],  
+            xlabel = 'From', 
+            ylabel = 'To')
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
+
+#daleModel.save("weights/saved_weights_new_task_sparse_connectivity_3")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
