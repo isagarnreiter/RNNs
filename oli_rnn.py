@@ -17,7 +17,9 @@ import random
 from scipy.stats import lognorm
 from scipy.stats import norm
 
-from weights_fct import plot_weights
+from fcts import initialise_params
+from fcts import plot_weights
+from fcts import initialise_connectivity
 
 
 %matplotlib inline
@@ -30,27 +32,30 @@ np.random.seed(seed)
 #%%
 
 # ---------------------- Set up a basic model ---------------------------
-dt = 10 # The simulation timestep.
-tau = 100 # The intrinsic time constant of neural state decay.
-T = 2500 # The trial length.
-N_batch = 50 # The number of trials per training update.
-N_rec = 100 # The number of recurrent units in the network.
-N_in = 3
-N_out = 2
-name = 'dale_model_' #  Unique name used to determine variable scope for internal use.
 
-pd = PerceptualDiscrimination(dt = dt, tau = tau, T = T, N_batch = N_batch) # Initialize the task object
+params = initialise_params('dale_network', 50)
+
+pd = PerceptualDiscrimination(dt = params['dt'],
+                              tau = params['tau'], 
+                              T = params['T'], 
+                              N_batch = params['N_batch']) # Initialize the task object
+
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
-dale_network_params['N_rec'] = N_rec # set the number of recurrent units in the model
-dale_network_params['name'] = name
-dale_network_params['N_in'] = N_in
-dale_network_params['N_out'] = N_out
-dale_network_params['dale_ratio'] = .8
+dale_network_params['N_rec'] = params['N_rec'] # set the number of recurrent units in the model
+dale_network_params['name'] = params['name']
+dale_network_params['N_in'] = params['N_in']
+dale_network_params['N_out'] = params['N_out']
+dale_network_params['dale_ratio'] =params['dale_ratio']
 
 #=============================================================================
 #build array depicting connections between 2 seperate excitatory + inhibitory domains. 
 #domains receive input from either of the 2 channels
 #10% of connexions are weighted randomly between domains
+
+in_connect, rec_connect, out_connect = initialise_connectivity(params, 
+                                                               N_colossal = 10, 
+                                                               N_exc_in = 10, 
+                                                               )
 
 nb_excn = int(N_rec*0.4)
 nb_inhn = int(N_rec*0.1)
@@ -65,18 +70,18 @@ input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
 input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
 
 #initialise sparse input connectivity
-input_connectivity[15:35, 0] = 0
+input_connectivity[20:40, 0] = 0
 input_connectivity[80:85, 0] = 0
 input_connectivity[90:95, 1] = 0
-input_connectivity[55:75, 1] = 0
+input_connectivity[60:80, 1] = 0
 
 
 output_connectivity[:, nb_excn*2:N_rec] = 0
 
-rec_connectivity[nb_excn:nb_excn*2,:nb_excn-10] = 0
-rec_connectivity[:nb_excn,nb_excn:nb_excn*2-10] = 0
-rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-10] = 0
-rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2-10] = 0
+rec_connectivity[nb_excn:nb_excn*2,:nb_excn-20] = 0
+rec_connectivity[:nb_excn,nb_excn:nb_excn*2-20] = 0
+rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-20] = 0
+rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2-20] = 0
 rec_connectivity[nb_excn:nb_excn*2, nb_excn*2:N_rec-nb_inhn] = 0
 rec_connectivity[:nb_excn, N_rec-nb_inhn:N_rec] = 0
 rec_connectivity[nb_excn*2:N_rec-nb_inhn, N_rec-nb_inhn:N_rec] = 0
@@ -119,7 +124,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 26
+trial_nb = 3
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -191,7 +196,7 @@ plot_weights(weights['W_rec'],
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
 
-#daleModel.save("weights/saved_weights_new_task_sparse_connectivity_3")
+#daleModel.save("weights/saved_weights_new_task_sparse_connectivity_5")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights

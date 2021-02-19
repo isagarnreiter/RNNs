@@ -15,14 +15,13 @@ from oli_task_modif import PerceptualDiscrimination
 %matplotlib inline
 #%%
 
-#weights_1 = dict(np.load('./weights/saved_weights_1_2_output.npz', allow_pickle = True))
-weights = dict(np.load('./weights/saved_weights_new_task_sparse_connectivity_3.npz', allow_pickle = True))
+#access weights directly
 
+weights = dict(np.load('./weights/saved_weights_new_task_sparse_connectivity_4.npz', allow_pickle = True))
 
 # =============================================================================
 # changes to be made to the weights
 # =============================================================================
-weights['W_in'][:,1] = 0
 
 np.savez('./weights/modified_saved_weights.npz', **weights)
 
@@ -43,31 +42,69 @@ file_network_params['name'] = name
 file_network_params['N_in'] = N_in
 file_network_params['N_out'] = N_out
 
-#=============================================================================
-#build array depicting connections between 2 seperate excitatory + inhibitory domains. 
-#domains receive input from either of the 2 channels
-#10% of connexions are weighted randomly between domains
-
-
-file_network_params['load_weights_path'] = './weights/modified_saved_weights.npz'
+#load weights 
+file_network_params['load_weights_path'] = './weights/saved_weights_new_task_sparse_connectivity_4.npz'
 
 fileModel = Basic(file_network_params)
 
 #%%
+#plot the weights of the network
+
 weights = fileModel.get_weights()
 plot_weights(weights['W_rec'], xlabel = 'From', ylabel = 'To')
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
 
 #%%
-x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
+
+#generate a single test trial
+
+#initialise parameters manually
+params_single_trial = {'intensity_0': 0.6, 
+                       'intensity_1': 0.6, 
+                       'random_output': 1, 
+                       'stim_noise': 0.1, 
+                       'onset_time': 0, 
+                       'stim_duration': 500, 
+                       'go_cue_onset': 1500, 
+                       'go_cue_duration': 25.0, 
+                       'post_go_cue': 125.0}
+
+x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
+
+#add dimension to shape of x, y, mask to fit the test() function and the figure format
+x = np.array([x])
+mask = np.array([mask])
+y = np.array([y])
+
 model_output, model_state = fileModel.test(x) # run the model on input x
 
-Accuracy = pd.accuracy_function(y, model_output, mask)
+
+#save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+if params_single_trial['intensity_0'] == 0:
+    max_hem2_hem2stim = model_state[trial_nb,50,40:80]  
+    max_hem1_hem2stim = model_state[trial_nb,50,0:40]
+elif params_single_trial['intensity_1'] == 0:    
+    max_hem2_hem1stim = model_state[trial_nb,50,40:80]
+    max_hem1_hem1stim = model_state[trial_nb,50,0:40]
+
+
+#%%
+#plot the relationship between reponse to stim 1 and stim2 for each neurons
+
+figure = plt.figure()
+ax1 = plt.subplot(111)
+ax1 = plt.scatter(max_hem1_hem1stim, max_hem1_hem2stim, c = 'coral', label = 'hemisphere 1', alpha=0.6)
+ax1 = plt.scatter(max_hem2_hem1stim, max_hem2_hem2stim, c = 'green', label = 'hemisphere 2', alpha=0.6)
+
+plt.title('states of excitatory neuron in hemisphere 1 and 2 at T = 500 ms')
+plt.legend()
+plt.xlabel('stim in hem 1')
+plt.ylabel('stim in hem 2')
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 26
+trial_nb = 0
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -98,7 +135,10 @@ ax4.set_ylim(-0.5,0.5)
 
 fig2.tight_layout()
 
+
 #%%
+
+#plot the states of neurons depending on whether they are inhibtory excitatory, or project to the other hemisphere
 fig3 = plt.figure()
 ax1 = plt.subplot(211)
 ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
@@ -116,6 +156,8 @@ ax2.set_title("State of each neuron in H2", fontsize = 10)
 ax2.set_ylim(-0.5, 0.5)
 
 plt.tight_layout()
+
+
 
 #%%
 fileModel.destruct()
