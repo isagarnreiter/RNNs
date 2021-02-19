@@ -42,7 +42,7 @@ pd = PerceptualDiscrimination(dt = params['dt'],
 
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
 dale_network_params['N_rec'] = params['N_rec'] # set the number of recurrent units in the model
-dale_network_params['name'] = params['name']
+dale_network_params['name'] = params['Name']
 dale_network_params['N_in'] = params['N_in']
 dale_network_params['N_out'] = params['N_out']
 dale_network_params['dale_ratio'] =params['dale_ratio']
@@ -54,42 +54,13 @@ dale_network_params['dale_ratio'] =params['dale_ratio']
 
 in_connect, rec_connect, out_connect = initialise_connectivity(params, 
                                                                N_colossal = 10, 
-                                                               N_exc_in = 10, 
-                                                               )
+                                                               N_exc_no_in = 20, 
+                                                               N_inh_no_in = 0,
+                                                               Input_to_colossal = True)
 
-nb_excn = int(N_rec*0.4)
-nb_inhn = int(N_rec*0.1)
-
-input_connectivity = np.ones((N_rec, N_in))
-rec_connectivity = np.ones((N_rec, N_rec))
-output_connectivity = np.ones((N_out, N_rec))
-
-input_connectivity[0:nb_excn, 1] = 0
-input_connectivity[nb_excn:nb_excn*2, 0] = 0
-input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
-input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
-
-#initialise sparse input connectivity
-input_connectivity[20:40, 0] = 0
-input_connectivity[80:85, 0] = 0
-input_connectivity[90:95, 1] = 0
-input_connectivity[60:80, 1] = 0
-
-
-output_connectivity[:, nb_excn*2:N_rec] = 0
-
-rec_connectivity[nb_excn:nb_excn*2,:nb_excn-20] = 0
-rec_connectivity[:nb_excn,nb_excn:nb_excn*2-20] = 0
-rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-20] = 0
-rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2-20] = 0
-rec_connectivity[nb_excn:nb_excn*2, nb_excn*2:N_rec-nb_inhn] = 0
-rec_connectivity[:nb_excn, N_rec-nb_inhn:N_rec] = 0
-rec_connectivity[nb_excn*2:N_rec-nb_inhn, N_rec-nb_inhn:N_rec] = 0
-rec_connectivity[N_rec-nb_inhn:N_rec, nb_excn*2:N_rec-nb_inhn] = 0
-
-dale_network_params['input_connectivity'] = input_connectivity
-dale_network_params['rec_connectivity'] = rec_connectivity
-dale_network_params['output_connectivity'] = output_connectivity
+dale_network_params['input_connectivity'] = in_connect
+dale_network_params['rec_connectivity'] = rec_connect
+dale_network_params['output_connectivity'] = out_connect
 
 
 daleModel = Basic(dale_network_params)
