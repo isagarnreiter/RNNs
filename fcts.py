@@ -73,10 +73,10 @@ def initialise_connectivity(params, N_colossal, N_exc_no_in, N_inh_no_in, Input_
     np.random.shuffle(input_sparseness_excn)
     np.random.shuffle(input_sparseness_inhn)
     
-    input_connectivity[0:40, 0] = input_sparseness_excn
-    input_connectivity[80:90, 0] = input_sparseness_inhn
-    input_connectivity[90:100, 1] = input_sparseness_inhn
-    input_connectivity[40:80, 1] = input_sparseness_excn
+    input_connectivity[0:nb_excn, 0] = input_sparseness_excn
+    input_connectivity[nb_excn*2:N_rec-nb_inhn, 0] = input_sparseness_inhn
+    input_connectivity[N_rec-nb_inhn:N_rec, 1] = input_sparseness_inhn
+    input_connectivity[nb_excn:nb_excn*2, 1] = input_sparseness_excn
     
     
     return input_connectivity, rec_connectivity, output_connectivity
