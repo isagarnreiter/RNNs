@@ -62,9 +62,14 @@ def initialise_connectivity(params, N_colossal, N_exc_no_in, N_inh_no_in, Input_
     #initialise sparse input connectivity
     
     if Input_to_colossal==False:
-        nb_excn = nb_excn - N_colossal
+        nb_excn_rand = nb_excn - N_colossal
+        input_connectivity[0+N_colossal:nb_excn, 0] = 0
+        input_connectivity[nb_excn+N_colossal:nb_excn*2, 1] = 0
         
-    input_sparseness_excn = np.ones((nb_excn))
+    elif Input_to_colossal==True:
+        nb_excn_rand = nb_excn
+        
+    input_sparseness_excn = np.ones((nb_excn_rand))
     input_sparseness_inhn = np.ones((nb_inhn))
     
     input_sparseness_excn[0:N_exc_no_in]=0
@@ -73,10 +78,10 @@ def initialise_connectivity(params, N_colossal, N_exc_no_in, N_inh_no_in, Input_
     np.random.shuffle(input_sparseness_excn)
     np.random.shuffle(input_sparseness_inhn)
     
-    input_connectivity[0:nb_excn, 0] = input_sparseness_excn
-    input_connectivity[nb_excn*2:N_rec-nb_inhn, 0] = input_sparseness_inhn
+    input_connectivity[0:nb_excn_rand, 0] = input_sparseness_excn
+    input_connectivity[80:N_rec-nb_inhn, 0] = input_sparseness_inhn
     input_connectivity[N_rec-nb_inhn:N_rec, 1] = input_sparseness_inhn
-    input_connectivity[nb_excn:nb_excn*2, 1] = input_sparseness_excn
+    input_connectivity[nb_excn:nb_excn+nb_excn_rand, 1] = input_sparseness_excn
     
     
-    return input_connectivity, rec_connectivity, output_connectivity
+    return input_connectivity, rec_connectivity, output_connectivity, nb_excn_rand

@@ -52,10 +52,10 @@ dale_network_params['dale_ratio'] =params['dale_ratio']
 #domains receive input from either of the 2 channels
 #10% of connexions are weighted randomly between domains
 
-in_connect, rec_connect, out_connect = initialise_connectivity(params, 
-                                                               N_colossal = 10, 
+in_connect, rec_connect, out_connect, bv = initialise_connectivity(params, 
+                                                               N_colossal = 20, 
                                                                N_exc_no_in = 20, 
-                                                               N_inh_no_in = 0,
+                                                               N_inh_no_in = 5,
                                                                Input_to_colossal = True)
 
 dale_network_params['input_connectivity'] = in_connect

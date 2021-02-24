@@ -11,6 +11,8 @@ from weights_fct import plot_weights
 from psychrnn.backend.models.basic import Basic
 import tensorflow as tf0
 from oli_task_modif import PerceptualDiscrimination
+from sklearn import PCA
+
 
 %matplotlib inline
 #%%
@@ -101,6 +103,11 @@ plt.title('states of excitatory neuron in hemisphere 1 and 2 at T = 500 ms')
 plt.legend()
 plt.xlabel('stim in hem 1')
 plt.ylabel('stim in hem 2')
+
+#%% 
+#calculate the PCA of the states of the network for a given trial
+
+
 
 #%%
 # ---------------------- Plot the results ---------------------------
