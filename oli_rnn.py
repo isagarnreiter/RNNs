@@ -54,8 +54,8 @@ dale_network_params['dale_ratio'] =params['dale_ratio']
 
 in_connect, rec_connect, out_connect, bv = initialise_connectivity(params, 
                                                                N_colossal = 20, 
-                                                               N_exc_no_in = 20, 
-                                                               N_inh_no_in = 5,
+                                                               N_exc_no_in = 15, 
+                                                               N_inh_no_in = 0,
                                                                Input_to_colossal = True)
 
 dale_network_params['input_connectivity'] = in_connect
@@ -95,10 +95,12 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 3
+trial_nb = 9
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
+
+dt = params['dt']
 
 fig2 = plt.figure(figsize=(20,8))
 
@@ -167,7 +169,7 @@ plot_weights(weights['W_rec'],
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
 
-#daleModel.save("weights/saved_weights_new_task_sparse_connectivity_5")
+daleModel.save("weights/saved_weights_10_20_5_True")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
