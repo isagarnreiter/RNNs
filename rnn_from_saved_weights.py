@@ -46,7 +46,7 @@ file_network_params['N_in'] = N_in
 file_network_params['N_out'] = N_out
 
 #load weights 
-file_network_params['load_weights_path'] = './weights/saved_weights_10_20_5_True.npz'
+file_network_params['load_weights_path'] = './weights/saved_weights_20_23_5_2nd.npz'
 
 fileModel = Basic(file_network_params)
 
@@ -112,15 +112,15 @@ pca_states = PCA(n_components=3)
 PCA_states = pca_states.fit_transform(model_state[trial_nb])
 
 figure = plt.figure()
-ax = plt.subplot(111) 
+ax1 = plt.subplot(111) 
 
 ax1 = plt.axes(projection ='3d') 
 
 ax1.scatter(PCA_states[0:150,0], PCA_states[0:150,1], PCA_states[0:150,2], c='blue', s = 3)
 ax1.scatter(PCA_states[150:250,0], PCA_states[150:250,1], PCA_states[150:250, 2], c='red', s = 3)
 
-ax1.set_ylim(-1.5,1.5)
-ax1.set_xlim(-1.5,1.5)
+# ax1.set_ylim(-1.5,1.5)
+# ax1.set_xlim(-1.5,1.5)
 #plt.legend(('PC1', 'PC2'))
 
 #%%
