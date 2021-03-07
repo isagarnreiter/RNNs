@@ -56,7 +56,8 @@ class PerceptualDiscrimination(Task):
         # Define parameters of a trial
         # ----------------------------------
         params = dict()
-        if trial%8 == 0:
+        prob_catch_trial = np.random.random()
+        if prob_catch_trial > 0.85:
            params['intensity_0'] = 0.0
            params['intensity_1'] = 0.0
         else:
@@ -139,7 +140,8 @@ class PerceptualDiscrimination(Task):
                 y_t[0] = rand_out
                 y_t[1] = 1-rand_out
 
-        return x_t, y_t, mask_t
+        
+        return x_t, y_t
     
    
     def accuracy_function(self, correct_output, test_output, output_mask):

@@ -31,7 +31,9 @@ def initialise_params(name, N_batch):
     
     return params
 
-def initialise_connectivity(params, N_colossal, N_exc_no_in, N_inh_no_in, Input_to_colossal):
+
+def initialise_connectivity(params, N_colossal, P_in, P_rec, P_out):
+    
     N_rec = params['N_rec']
     N_in = params['N_in']
     N_out = params['N_out']
@@ -39,9 +41,27 @@ def initialise_connectivity(params, N_colossal, N_exc_no_in, N_inh_no_in, Input_
     nb_excn = int(N_rec*0.4)
     nb_inhn = int(N_rec*0.1)
 
-    input_connectivity = np.ones((N_rec, N_in))
-    rec_connectivity = np.ones((N_rec, N_rec))
-    output_connectivity = np.ones((N_out, N_rec))
+    #initialise sparse input connectivity depending on the defined probability of connectivity
+
+    input_connectivity = np.zeros((N_rec * N_in))
+    input_connectivity[0:int(P_in*N_rec*N_in)] = 1
+    np.random.shuffle(input_connectivity)
+    input_connectivity = input_connectivity.reshape(N_rec, N_in)
+
+    
+    rec_connectivity = np.zeros((N_rec * N_rec))
+    rec_connectivity[0:int(P_rec*N_rec*N_rec)] = 1
+    np.random.shuffle(rec_connectivity)
+    rec_connectivity = rec_connectivity.reshape(N_rec, N_rec)
+
+
+    output_connectivity = np.ones((N_out * N_rec))
+    output_connectivity[0:int(P_out*N_out*N_rec)] = 1
+    np.random.shuffle(output_connectivity)
+    output_connectivity = output_connectivity.reshape(N_out, N_rec)
+    
+    
+    #set basic connectivity with differences in the number of neurons with colossal projections
     
     output_connectivity[:, nb_excn*2:N_rec] = 0
     
@@ -57,31 +77,7 @@ def initialise_connectivity(params, N_colossal, N_exc_no_in, N_inh_no_in, Input_
     input_connectivity[0:nb_excn, 1] = 0
     input_connectivity[nb_excn:nb_excn*2, 0] = 0
     input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
-    input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
-
-    #initialise sparse input connectivity
-    
-    if Input_to_colossal==False:
-        nb_excn_rand = nb_excn - N_colossal
-        input_connectivity[0+N_colossal:nb_excn, 0] = 0
-        input_connectivity[nb_excn+N_colossal:nb_excn*2, 1] = 0
-        
-    elif Input_to_colossal==True:
-        nb_excn_rand = nb_excn
-        
-    input_sparseness_excn = np.ones((nb_excn_rand))
-    input_sparseness_inhn = np.ones((nb_inhn))
-    
-    input_sparseness_excn[0:N_exc_no_in]=0
-    input_sparseness_inhn[0:N_inh_no_in]=0
-    
-    np.random.shuffle(input_sparseness_excn)
-    np.random.shuffle(input_sparseness_inhn)
-    
-    input_connectivity[0:nb_excn_rand, 0] = input_sparseness_excn
-    input_connectivity[80:N_rec-nb_inhn, 0] = input_sparseness_inhn
-    input_connectivity[N_rec-nb_inhn:N_rec, 1] = input_sparseness_inhn
-    input_connectivity[nb_excn:nb_excn+nb_excn_rand, 1] = input_sparseness_excn
+    input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0    
     
     
-    return input_connectivity, rec_connectivity, output_connectivity, nb_excn_rand
+    return input_connectivity, rec_connectivity, output_connectivity
