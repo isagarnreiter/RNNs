@@ -51,12 +51,12 @@ dale_network_params['dale_ratio'] =params['dale_ratio']
 #build array depicting connections between 2 seperate excitatory + inhibitory domains. 
 #domains receive input from either of the 2 channels
 #10% of connexions are weighted randomly between domains
+N_colossal = 20
+P_in = 0.2
+P_rec = 0.8
+P_out = 0.8
+in_connect, rec_connect, out_connect, = initialise_connectivity(params, N_colossal, P_in, P_rec, P_out)
 
-in_connect, rec_connect, out_connect, bv = initialise_connectivity(params, 
-                                                               N_colossal = 20, 
-                                                               N_exc_no_in = 15, 
-                                                               N_inh_no_in = 0,
-                                                               Input_to_colossal = True)
 
 dale_network_params['input_connectivity'] = in_connect
 dale_network_params['rec_connectivity'] = rec_connect
@@ -67,9 +67,23 @@ daleModel = Basic(dale_network_params)
 
 #%%
 
+figure = plt.figure()
+ax1 = plt.subplot(111) 
+
+ax1 = plt.axes(projection ='3d')
+ax1.scatter(P_in, P_rec, P_out)
+ax1.set_xlabel('P_in')
+ax1.set_ylabel('P_rec')
+ax1.set_zlabel('P_out')
+ax1.set_xlim(0,1)
+ax1.set_ylim(0,1)
+ax1.set_zlim(0,1)
+
+#%%
+
 train_params = {}
 train_params['save_weights_path'] =  None # Where to save the model after training. Default: None
-train_params['training_iters'] = 200000 # number of iterations to train for Default: 50000
+train_params['training_iters'] = 150000 # number of iterations to train for Default: 50000
 train_params['learning_rate'] = .001 # Sets learning rate if use default optimizer Default: .001
 train_params['loss_epoch'] = 10 # Compute and record loss every 'loss_epoch' epochs. Default: 10
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
@@ -95,7 +109,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 9
+trial_nb = 10
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -169,7 +183,7 @@ plot_weights(weights['W_rec'],
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
 
-daleModel.save("weights/saved_weights_10_20_5_True")
+daleModel.save("weights/probabs_20_02_08_08")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights

@@ -141,7 +141,7 @@ class PerceptualDiscrimination(Task):
                 y_t[1] = 1-rand_out
 
         
-        return x_t, y_t
+        return x_t, y_t, mask_t
     
    
     def accuracy_function(self, correct_output, test_output, output_mask):

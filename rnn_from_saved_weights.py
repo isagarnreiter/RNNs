@@ -46,7 +46,7 @@ file_network_params['N_in'] = N_in
 file_network_params['N_out'] = N_out
 
 #load weights 
-file_network_params['load_weights_path'] = './weights/saved_weights_difftask_20_10_5_True.npz'
+file_network_params['load_weights_path'] = './weights/probabs_20_02_08_08.npz'
 
 fileModel = Basic(file_network_params)
 
@@ -63,8 +63,8 @@ plot_weights(weights['W_out'])
 #generate a single test trial
 
 #initialise parameters manually
-params_single_trial = {'intensity_0': 0.6, 
-                       'intensity_1': 0.0, 
+params_single_trial = {'intensity_0': 0.0, 
+                       'intensity_1': 0.6, 
                        'random_output': 1, 
                        'stim_noise': 0.1, 
                        'onset_time': 0, 
@@ -94,16 +94,21 @@ elif params_single_trial['intensity_1'] == 0:
 
 #%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
+unity_line = [-1, 0, 1]
 
-figure = plt.figure()
+figure = plt.figure(figsize=(6,6))
 ax1 = plt.subplot(111)
-ax1 = plt.scatter(max_hem1_hem1stim, max_hem1_hem2stim, c = 'coral', label = 'hemisphere 1', alpha=0.6)
-ax1 = plt.scatter(max_hem2_hem1stim, max_hem2_hem2stim, c = 'green', label = 'hemisphere 2', alpha=0.6)
-
-plt.title('states of excitatory neuron in hemisphere 1 and 2 at T = 500 ms')
-plt.legend()
-plt.xlabel('stim in hem 1')
-plt.ylabel('stim in hem 2')
+ax1.scatter(max_hem1_hem1stim, max_hem1_hem2stim, c = 'coral', label = 'hemisphere 1', alpha=0.6)
+ax1.scatter(max_hem2_hem1stim, max_hem2_hem2stim, c = 'green', label = 'hemisphere 2', alpha=0.6)
+ax1.plot(unity_line, unity_line, c='black')
+ax1.set_xlim(-1,1)
+ax1.set_xticks([-1,-0.5,0, 0.5,1])
+ax1.set_ylim(-1,1)
+ax1.set_yticks([-1,-0.5,0, 0.5,1])
+ax1.set_title('states of excitatory neuron in hemisphere 1 and 2 at T = 500 ms')
+ax1.legend()
+ax1.set_xlabel('stim in hem 1')
+ax1.set_ylabel('stim in hem 2')
 
 #%% 
 #calculate the PCA of the states of the network for a given trial

@@ -55,7 +55,7 @@ def initialise_connectivity(params, N_colossal, P_in, P_rec, P_out):
     rec_connectivity = rec_connectivity.reshape(N_rec, N_rec)
 
 
-    output_connectivity = np.ones((N_out * N_rec))
+    output_connectivity = np.zeros((N_out * N_rec))
     output_connectivity[0:int(P_out*N_out*N_rec)] = 1
     np.random.shuffle(output_connectivity)
     output_connectivity = output_connectivity.reshape(N_out, N_rec)
