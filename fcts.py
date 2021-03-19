@@ -64,6 +64,8 @@ def initialise_connectivity(params, N_colossal, P_in, P_rec, P_out):
     #set basic connectivity with differences in the number of neurons with colossal projections
     
     output_connectivity[:, nb_excn*2:N_rec] = 0
+    output_connectivity[0, 40:80] = 0
+    output_connectivity[1, 0:40] = 0
     
     rec_connectivity[nb_excn:nb_excn*2,:nb_excn-N_colossal] = 0
     rec_connectivity[:nb_excn,nb_excn:nb_excn*2-N_colossal] = 0
