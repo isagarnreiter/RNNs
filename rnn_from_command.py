@@ -65,7 +65,7 @@ stim_pref_dict = fcts.stim_pref(daleModel, pd) # Get the weights of the network
 weights = daleModel.get_weights() # Fetch the weights of the network 
 
 # Save the loss, stimulus preference and weights of the network in npz file ---------------------------
-np.savez(f'IpsiContra_IN{str(P_in)[0]+str(P_in)[2]}_REC{str(P_rec)[0]+str(P_rec)[2]}_Col{N_callosal}_s{seed}',  
+np.savez(f'IpsiContra_IN{str(P_in)[0]+str(P_in)[2]}_REC{str(P_rec)[0]+str(P_rec)[2]}_Col{N_callosal}',  
          losses=losses, 
          weights=weights, 
          stim_pref=stim_pref_dict)
