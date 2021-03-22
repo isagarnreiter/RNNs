@@ -1,70 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Nov 13 20:49:12 2020
+Created on Mon Mar 22 21:13:02 2021
 
 @author: Isabelle
 """
 
-from oli_task_modif import PerceptualDiscrimination
-from psychrnn.backend.models.basic import Basic
-
-import tensorflow as tf
 from matplotlib import pyplot as plt
-
 import numpy as np
-import random
-
 from scipy.stats import lognorm
 from scipy.stats import norm
 
-import fcts
-%matplotlib inline
-seed=2020
-
-tf.compat.v2.random.set_seed(seed)
-random.seed(seed)
-np.random.seed(seed)
 
 #%%
-
-
-# ---------------------- Set up a basic model ---------------------------
-
-params = initialise_params('dale_network', 50)
-
-pd = PerceptualDiscrimination(dt = params['dt'],
-                              tau = params['tau'], 
-                              T = params['T'], 
-                              N_batch = params['N_batch']) # Initialize the task object
-
-dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
-dale_network_params['N_rec'] = params['N_rec'] # set the number of recurrent units in the model
-dale_network_params['name'] = params['Name']
-dale_network_params['N_in'] = params['N_in']
-dale_network_params['N_out'] = params['N_out']
-dale_network_params['dale_ratio'] =0.8
-
-#=============================================================================
-#define connectivity of the network
-#the initial achitecture is predefined in the function initialise_connectivity.
-#the probability of connection can be defined for the input matrix, the recurrent matrix and the output matrix
-#N_callosal corresponds to the number of neurons with callosal projections.
-
-N_callosal = 20
-P_in = 0.1
-P_rec = 0.1
-P_out = 0.5
-in_connect, rec_connect, out_connect, = initialise_connectivity(params, N_callosal, P_in, P_rec, P_out)
-
-
-dale_network_params['input_connectivity'] = in_connect
-dale_network_params['rec_connectivity'] = rec_connect
-dale_network_params['output_connectivity'] = out_connect
-
-
-daleModel = Basic(dale_network_params)
-
-#%%
+#plots the positions of the connection probability
 
 figure = plt.figure()
 ax1 = plt.subplot(111) 
@@ -79,14 +27,7 @@ ax1.set_ylim(0,1)
 ax1.set_zlim(0,1)
 
 #%%
-
-train_params = {}
-train_params['training_iters'] = 100000 # number of iterations to train for Default: 50000
-train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
-
-# ---------------------- Train a basic model ---------------------------
-losses, initialTime, trainTime = daleModel.train(pd, train_params) 
-
+#plot the loss during training
 fig1= plt.figure()
 plt.plot(losses)
 plt.ylabel("Loss")
@@ -95,11 +36,12 @@ plt.title("Loss During Training")
 
 #%%
 
+#test network on test batch
+
 # ---------------------- Test the trained model ---------------------------
 x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = daleModel.test(x) # run the model on input x
 
-#%%
 # ---------------------- Plot the results ---------------------------
 trial_nb = 0
 for i in range(len(mask[trial_nb])):
@@ -156,9 +98,6 @@ ax2.set_title("State of each neuron in H2", fontsize = 10)
 plt.tight_layout()
 
 
-#%%
-stim_pref_dict = stim_pref(daleModel, pd)
-
 #%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
 unity_line = [-1, 0, 1]
@@ -177,26 +116,29 @@ ax1.legend()
 ax1.set_xlabel('stim in hem 1')
 ax1.set_ylabel('stim in hem 2')
 
-#%%
-        
-bins = pd.psychometric_curve(y, mask, train_params,9)
-
-plt.plot(bins)
-plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
 
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
 
 weights = daleModel.get_weights()
 
-fcts.plot_weights(weights['W_rec'],  
+plot_weights(weights['W_rec'],  
             xlabel = 'From', 
             ylabel = 'To')
 
-fcts.plot_weights(weights['W_in'])
-fcts.plot_weights(weights['W_out'])
+plot_weights(weights['W_in'])
+plot_weights(weights['W_out'])
 
 daleModel.save("weights/seg_output_20_1_01_01")
+
+
+#%%
+#try and do psychometric curve, need to update code for this
+   
+bins = pd.psychometric_curve(y, mask, train_params,9)
+
+plt.plot(bins)
+plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
@@ -243,10 +185,3 @@ y = norm.pdf(x,lmean,lstd)
 
 plt.hist(log_weights, bins=50, alpha = 0.75, density=True)
 plt.plot(x,y, 'k', color='coral')
-
-#%%
-daleModel.destruct()
-
-
-
-

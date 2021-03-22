@@ -32,7 +32,7 @@ def initialise_params(name, N_batch):
     return params
 
 
-def initialise_connectivity(params, N_colossal, P_in, P_rec, P_out):
+def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     
     N_rec = params['N_rec']
     N_in = params['N_in']
@@ -67,10 +67,10 @@ def initialise_connectivity(params, N_colossal, P_in, P_rec, P_out):
     output_connectivity[0, 40:80] = 0
     output_connectivity[1, 0:40] = 0
     
-    rec_connectivity[nb_excn:nb_excn*2,:nb_excn-N_colossal] = 0
-    rec_connectivity[:nb_excn,nb_excn:nb_excn*2-N_colossal] = 0
-    rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-N_colossal] = 0
-    rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2-N_colossal] = 0
+    rec_connectivity[nb_excn:nb_excn*2,:nb_excn-N_callosal] = 0
+    rec_connectivity[:nb_excn,nb_excn:nb_excn*2-N_callosal] = 0
+    rec_connectivity[N_rec-nb_inhn:N_rec, :nb_excn-N_callosal] = 0
+    rec_connectivity[nb_excn*2:N_rec-nb_inhn, nb_excn:nb_excn*2-N_callosal] = 0
     rec_connectivity[nb_excn:nb_excn*2, nb_excn*2:N_rec-nb_inhn] = 0
     rec_connectivity[:nb_excn, N_rec-nb_inhn:N_rec] = 0
     rec_connectivity[nb_excn*2:N_rec-nb_inhn, N_rec-nb_inhn:N_rec] = 0

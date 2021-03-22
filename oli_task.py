@@ -32,9 +32,9 @@ class PerceptualDiscrimination(Task):
 
         self.direction = direction
 
-        self.lo = 1.0 # Low value for one hot encoding
+        self.lo = 0.0 # Low value for one hot encoding
 
-        self.hi = 2.0 # High value for one hot encoding
+        self.hi = 1.0 # High value for one hot encoding
 
     def generate_trial_params(self, batch, trial):
         """Define parameters for each trial.
@@ -56,11 +56,15 @@ class PerceptualDiscrimination(Task):
         # Define parameters of a trial
         # ----------------------------------
         params = dict()
-        
-        params['intensity'] = np.random.uniform(0.8, 1.4)
-        
-        params['coherence'] = np.random.uniform(params['intensity']/2, params['intensity'])
-        params['direction'] = np.random.choice([0, 1])
+        prob_catch_trial = np.random.random()
+        if prob_catch_trial > 0.85:
+           params['intensity_0'] = 0.0
+           params['intensity_1'] = 0.0
+        else:
+            choices = [0.0, 0.2, 0.4, 0.6]
+            params['intensity_0'] = np.random.choice(choices)
+            params['intensity_1'] = np.random.choice(choices)
+        params['random_output'] = np.random.choice([0,1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
         params['stim_duration'] = 500
@@ -86,11 +90,11 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         # Retrieve parameters
         # ----------------------------------
-        inte = params['intensity']
-        coh = params['coherence']
+        int_0 = params['intensity_0']
+        int_1 = params['intensity_1']
+        rand_out = params['random_output']
         stim_onset = params['onset_time']
         stim_dur = params['stim_duration']
-        dire = params['direction']
         noise = params['stim_noise']
         go_onset = params['go_cue_onset']
         go_duration = params['go_cue_duration']
@@ -108,8 +112,8 @@ class PerceptualDiscrimination(Task):
         # Compute values
         # ----------------------------------
         if stim_onset < t < stim_onset + stim_dur:
-            x_t[dire] += coh
-            x_t[1-dire] += (inte - coh)
+            x_t[0] += int_0
+            x_t[1] += int_1
         
         if t <= go_onset + post_cue:
             y_t =+ self.lo
@@ -120,11 +124,23 @@ class PerceptualDiscrimination(Task):
 
         if go_onset < t < go_onset + post_cue:
             mask_t = np.zeros(self.N_out)
+            
 
         if t > go_onset + post_cue:
-            y_t[dire] = self.hi
-            y_t[1-dire] = self.lo
+            if int_0 > int_1:
+                y_t[0] = self.hi
+                y_t[1] = self.lo
+            elif int_0 < int_1:
+                y_t[0] = self.lo
+                y_t[1] = self.hi
+            elif int_0 == int_1 == 0.0:
+                y_t[0] = self.lo
+                y_t[1] = self.lo
+            elif int_0 == int_1:
+                y_t[0] = rand_out
+                y_t[1] = 1-rand_out
 
+        
         return x_t, y_t, mask_t
     
    
