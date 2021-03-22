@@ -20,6 +20,7 @@ from scipy.stats import norm
 from fcts import initialise_params
 from fcts import plot_weights
 from fcts import initialise_connectivity
+from fcts import stim_pref
 
 
 %matplotlib inline
@@ -54,9 +55,9 @@ dale_network_params['dale_ratio'] =0.8
 #N_colossal corresponds to the number of neurons with colossal projections.
 
 N_colossal = 20
-P_in = 0.2
-P_rec = 0.6
-P_out = 0.6
+P_in = 0.1
+P_rec = 0.1
+P_out = 0.5
 in_connect, rec_connect, out_connect, = initialise_connectivity(params, N_colossal, P_in, P_rec, P_out)
 
 
@@ -85,7 +86,7 @@ ax1.set_zlim(0,1)
 
 train_params = {}
 train_params['save_weights_path'] =  None # Where to save the model after training. Default: None
-train_params['training_iters'] = 100000 # number of iterations to train for Default: 50000
+train_params['training_iters'] = 120000 # number of iterations to train for Default: 50000
 train_params['learning_rate'] = .001 # Sets learning rate if use default optimizer Default: .001
 train_params['loss_epoch'] = 10 # Compute and record loss every 'loss_epoch' epochs. Default: 10
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
@@ -111,7 +112,7 @@ model_output, model_state = daleModel.test(x) # run the model on input x
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 10
+trial_nb = 0
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -165,37 +166,9 @@ ax2.set_title("State of each neuron in H2", fontsize = 10)
 
 plt.tight_layout()
 
+
 #%%
-#generate a single test trial
-
-#initialise parameters manually
-params_single_trial = {'intensity_0': 0.0, 
-                       'intensity_1': 0.6, 
-                       'random_output': 1, 
-                       'stim_noise': 0.1, 
-                       'onset_time': 0, 
-                       'stim_duration': 500, 
-                       'go_cue_onset': 1500, 
-                       'go_cue_duration': 25.0, 
-                       'post_go_cue': 125.0}
-
-x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
-
-#add dimension to shape of x, y, mask to fit the test() function and the figure format
-x = np.array([x])
-mask = np.array([mask])
-y = np.array([y])
-
-model_output, model_state = daleModel.test(x) # run the model on input x
-
-
-#save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
-if params_single_trial['intensity_0'] == 0:
-    max_hem2_hem2stim = model_state[trial_nb,50,40:80]  
-    max_hem1_hem2stim = model_state[trial_nb,50,0:40]
-elif params_single_trial['intensity_1'] == 0:    
-    max_hem2_hem1stim = model_state[trial_nb,50,40:80]
-    max_hem1_hem1stim = model_state[trial_nb,50,0:40]
+stim_pref_dict = stim_pref(daleModel, pd)
 
 #%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
@@ -206,7 +179,7 @@ ax1 = plt.subplot(111)
 ax1.scatter(max_hem1_hem1stim, max_hem1_hem2stim, c = 'coral', label = 'hemisphere 1', alpha=0.6)
 ax1.scatter(max_hem2_hem1stim, max_hem2_hem2stim, c = 'green', label = 'hemisphere 2', alpha=0.6)
 ax1.plot(unity_line, unity_line, c='black')
-ax1.set_xlim(-1,1)
+ax1.set_xlim(-1, 1)
 ax1.set_xticks([-1,-0.5,0, 0.5,1])
 ax1.set_ylim(-1,1)
 ax1.set_yticks([-1,-0.5,0, 0.5,1])
@@ -234,7 +207,7 @@ plot_weights(weights['W_rec'],
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
 
-#daleModel.save("weights/dale_ratio_05")
+daleModel.save("weights/seg_output_20_1_01_01")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
@@ -284,5 +257,7 @@ plt.plot(x,y, 'k', color='coral')
 
 #%%
 daleModel.destruct()
+
+
 
 

@@ -83,3 +83,29 @@ def initialise_connectivity(params, N_colossal, P_in, P_rec, P_out):
     
     
     return input_connectivity, rec_connectivity, output_connectivity
+
+
+def stim_pref(daleModel, pd):
+    stim_pref_dict = {}
+    j = [[0.0, 0.6], [0.6, 0.0]]
+    k = [2,1]
+    
+    for i in [0,1]:
+        params_single_trial = {'intensity_0': j[i][0], 
+                                'intensity_1': j[i][1], 
+                                'random_output': 1, 
+                                'stim_noise': 0.1, 
+                                'onset_time': 0, 
+                                'stim_duration': 500, 
+                                'go_cue_onset': 1500, 
+                                'go_cue_duration': 25.0, 
+                                'post_go_cue': 125.0}
+    
+        x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
+        x, y, mask = np.array([x]), np.array([y]), np.array([mask]) #add dimension to shape of x, y, mask to fit the test() function and the figure format
+        
+        model_output, model_state = daleModel.test(x) # run the model on input x
+        
+        stim_pref_dict[f'max_hem{k[i]}stim'] = model_state[0,50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+           
+    return stim_pref_dict
