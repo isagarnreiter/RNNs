@@ -10,7 +10,9 @@ import numpy as np
 from scipy.stats import lognorm
 from scipy.stats import norm
 
+#%%
 
+dalemodel_test = dict(np.load("IpsiContra_IN05_REC01_Col10_s2020.npz", allow_pickle=True))
 #%%
 #plots the positions of the connection probability
 

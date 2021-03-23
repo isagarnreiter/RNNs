@@ -5,7 +5,7 @@ Created on Fri Nov 13 20:49:12 2020
 @author: Isabelle
 """
 
-from oli_task_modif import PerceptualDiscrimination
+from oli_task import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
 
 import tensorflow as tf
