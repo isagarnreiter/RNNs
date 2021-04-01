@@ -13,17 +13,17 @@ import tensorflow as tf0
 from oli_task_modif import PerceptualDiscrimination
 from sklearn.decomposition import PCA
 from mpl_toolkits import mplot3d 
-
+from sklearn.preprocessing import StandardScaler
 
 %matplotlib inline
 #%%
 
 #access weights directly
 
-weights = dict(np.load('./weights/saved_weights_new_task_sparse_connectivity_4.npz', allow_pickle = True))
+weights = dict(np.load('./weights/dale_ratio_05.npz', allow_pickle = True))
 
 # =============================================================================
-# changes to be made to the weights
+# add changes to be made to the weights
 # =============================================================================
 
 np.savez('./weights/modified_saved_weights.npz', **weights)
@@ -46,9 +46,10 @@ file_network_params['N_in'] = N_in
 file_network_params['N_out'] = N_out
 
 #load weights 
-file_network_params['load_weights_path'] = './weights/probabs_20_02_08_08.npz'
+file_network_params['load_weights_path'] = './weights/seg_output_20_01_01_01_2.npz'
 
 fileModel = Basic(file_network_params)
+
 
 #%%
 #plot the weights of the network
@@ -60,11 +61,17 @@ plot_weights(weights['W_out'])
 
 #%%
 
+# ---------------------- Test the trained model ---------------------------
+x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
+model_output, model_state = fileModel.test(x) # run the model on input x
+
+#%%
+
 #generate a single test trial
 
 #initialise parameters manually
-params_single_trial = {'intensity_0': 0.0, 
-                       'intensity_1': 0.6, 
+params_single_trial = {'intensity_0': 0.6, 
+                       'intensity_1': 0.0, 
                        'random_output': 1, 
                        'stim_noise': 0.1, 
                        'onset_time': 0, 
@@ -112,9 +119,18 @@ ax1.set_ylabel('stim in hem 2')
 
 #%% 
 #calculate the PCA of the states of the network for a given trial
+#a = model_state[trial_n]
+trial_nb=18
+
+PCA_data = np.concatenate(model_state, axis=1)
+stdPCA_data = StandardScaler().fit_transform(PCA_data)
+
+single_trial = StandardScaler().fit_transform(model_state[trial_nb])
 
 pca_states = PCA(n_components=3)
-PCA_states = pca_states.fit_transform(model_state[trial_nb])
+PCA_states = pca_states.fit_transform(stdPCA_data)
+PCA_state_2 = pca_states.fit_transform(single_trial)
+
 
 figure = plt.figure()
 ax1 = plt.subplot(111) 
@@ -122,17 +138,19 @@ ax1 = plt.subplot(111)
 ax1 = plt.axes(projection ='3d') 
 
 ax1.scatter(PCA_states[0:150,0], PCA_states[0:150,1], PCA_states[0:150,2], c='blue', s = 3)
-ax1.scatter(PCA_states[150:250,0], PCA_states[150:250,1], PCA_states[150:250, 2], c='red', s = 3)
+ax1.scatter(PCA_states[150:250,0], PCA_states[150:250,1], PCA_states[150:250,2], c='red', s = 3)
 ax1.scatter(PCA_states[0,0], PCA_states[0,1], PCA_states[0,2], c='black', s = 10, marker = 'x')
+ax1.scatter(PCA_state_2[0:150,0], PCA_states[0:150,1], PCA_states[0:150,2], c='blue', s = 3)
+ax1.scatter(PCA_state_2[150:250,0], PCA_states[150:250,1], PCA_states[150:250,2], c='red', s = 3)
 
-ax1.set_ylim(-1.5,1.5)
-ax1.set_xlim(-1.5,1.5)
-ax1.set_zlim(-1.5, 1.5)
+# ax1.set_ylim(-1.5,1.5)
+# ax1.set_xlim(-1.5,1.5)
+# ax1.set_zlim(-1.5, 1.5)
 #plt.legend(('PC1', 'PC2'))
 
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 0
+trial_nb = 10
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan

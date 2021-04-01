@@ -15,15 +15,15 @@ import random
 import fcts
 import sys
 
-P_in = float(sys.argv[1])
-P_rec = float(sys.argv[2])
-N_callosal = int(sys.argv[3])
-seed = int(sys.argv[4])
+# P_in = float(sys.argv[1])
+# P_rec = float(sys.argv[2])
+# N_callosal = int(sys.argv[3])
+# seed = int(sys.argv[4])
 
-# P_in = 0.5
-# P_rec = 0.1
-# N_callosal = 10
-# seed = 1
+P_in = 0.5
+P_rec = 0.1
+N_callosal = 10
+seed = 1
 
 tf.compat.v2.random.set_seed(seed)
 random.seed(seed)

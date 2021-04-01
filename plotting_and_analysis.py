@@ -9,13 +9,20 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import lognorm
 from scipy.stats import norm
+import os
+from matplotlib import cm
+
+from matplotlib import colors
+
+
+
+%matplotlib inline
 
 #%%
 
-dalemodel_test = dict(np.load("IpsiContra_IN05_REC01_Col10_s2020.npz", allow_pickle=True))
+dalemodel_test = dict(np.load("IpsiContra_In02_Rec02_Col10_s0.npz", allow_pickle=True))
 #%%
 #plots the positions of the connection probability
-
 figure = plt.figure()
 ax1 = plt.subplot(111) 
 
@@ -30,6 +37,7 @@ ax1.set_zlim(0,1)
 
 #%%
 #plot the loss during training
+
 fig1= plt.figure()
 plt.plot(losses)
 plt.ylabel("Loss")
@@ -102,27 +110,116 @@ plt.tight_layout()
 
 #%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
-unity_line = [-1, 0, 1]
 
-figure = plt.figure(figsize=(6,6))
-ax1 = plt.subplot(111)
-ax1.scatter(max_hem1_hem1stim, max_hem1_hem2stim, c = 'coral', label = 'hemisphere 1', alpha=0.6)
-ax1.scatter(max_hem2_hem1stim, max_hem2_hem2stim, c = 'green', label = 'hemisphere 2', alpha=0.6)
-ax1.plot(unity_line, unity_line, c='black')
-ax1.set_xlim(-1, 1)
-ax1.set_xticks([-1,-0.5,0, 0.5,1])
-ax1.set_ylim(-1,1)
-ax1.set_yticks([-1,-0.5,0, 0.5,1])
-ax1.set_title('states of excitatory neuron in hemisphere 1 and 2 at T = 500 ms')
-ax1.legend()
-ax1.set_xlabel('stim in hem 1')
-ax1.set_ylabel('stim in hem 2')
+var = np.array([])
+for item in os.listdir('outputs'):
+    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
 
+    stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]
+    loss = dalemodel_test['losses'][-1]
+    
+    filename = item[0:-4]
+    
+    P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
+    P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
+    N_cal = int(item[25:27])
+    seed = int(item[29])
+    variance = np.std(stim_pref['max_hem2stim'][0:40]) * np.std(stim_pref['max_hem1stim'][40:80])
+    
+    
+    var = np.append(var, [P_in, P_rec, N_cal, seed, variance])
+
+    # figure = plt.figure(figsize=(6,6))
+    # ax1 = plt.subplot(111)
+    # ax1.scatter(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], c = 'coral', label = 'hemisphere 1', alpha=0.6)
+    # ax1.scatter(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80], c = 'green', label = 'hemisphere 2', alpha=0.6)
+    # ax1.plot([-1, 1], [-1, 1], c='black')
+    # ax1.set_xlim(-2, 2)
+    # ax1.set_xticks([-1,-0.5,0, 0.5,1])
+    # ax1.set_ylim(-2,2)
+    # ax1.set_yticks([-1,-0.5,0, 0.5,1])
+    # ax1.set_title(f'loss = {loss}')
+    # ax1.legend()
+    # ax1.set_xlabel('stim in hem 1')
+    # ax1.set_ylabel('stim in hem 2')
+    
+var = var.reshape(int(var.shape[0]/5), 5)
+#%%
+def take_first(elem):
+    return elem[0]
+
+    
+var_sort0 = np.array(sorted(var, key=take_first))
+var_sort0 = var_sort0.reshape(4, 48, 5)
+for i in [0,1,2,3]:
+    var_sort0[i] = np.array(sorted(var_sort0[i], key=take_second))
+
+var_sort0 = var_sort0.reshape(4, 4, 12, 5)
+for i in [0,1,2,3]:
+    for j in [0,1,2,3]:
+        var_sort0[i][j] = np.array(sorted(var_sort0[i][j], key=take_third))
+        
+var_sort0 = var_sort0.reshape(4, 4, 4, 3, 5)
+for i in [0,1,2,3]:
+    for j in [0,1,2,3]:
+        for k in [0,1,2,3]:
+            var_sort0[i][j][k] = np.array(sorted(var_sort0[i][j][k], key=take_fourth))
+
+
+ax = 1
+fig4 = plt.figure(figsize = (10,10))
+for i in range(4):
+    for j in range(4):
+        plt.subplot(4, 4, ax)
+        plt.imshow(var_sort0[i,j,:,:,4], cmap='viridis', norm=colors.Normalize(vmin=0.003, vmax=0.2))
+        ax=ax+1
+        
+fig4.colorbar(mappable=var_sort0[0,0,:,:,4], cmap='viridis', fraction=.1, orientation='horizontal',)
+#%%
+
+N = 4
+
+fig, axs = plt.subplots(N, N)
+fig.suptitle('Multiple images')
+
+images = []
+for i in range(N):
+    for j in range(N):
+        # Generate data with a range that varies from one plot to the next.
+        data = var_sort0[i,j,:,:,4]
+        images.append(axs[i, j].imshow(data))
+        axs[i, j].label_outer()
+
+# Find the min and max of all colors for use in setting the color scale.
+vmin = min(image.get_array().min() for image in images)
+vmax = max(image.get_array().max() for image in images)
+norm = colors.Normalize(vmin=vmin, vmax=vmax)
+for im in images:
+    im.set_norm(norm)
+
+fig.colorbar(images[0], ax=axs, orientation='horizontal', fraction=.05)
+
+
+# Make images respond to changes in the norm of other images (e.g. via the
+# "edit axis, curves and images parameters" GUI on Qt), but be careful not to
+# recurse infinitely!
+def update(changed_image):
+    for im in images:
+        if (changed_image.get_cmap() != im.get_cmap()
+                or changed_image.get_clim() != im.get_clim()):
+            im.set_cmap(changed_image.get_cmap())
+            im.set_clim(changed_image.get_clim())
+
+
+for im in images:
+    im.callbacksSM.connect('changed', update)
+
+plt.show()
 
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
 
-weights = daleModel.get_weights()
+weights = dalemodel_test['weights'].reshape(1)[0]
 
 plot_weights(weights['W_rec'],  
             xlabel = 'From', 
@@ -130,8 +227,6 @@ plot_weights(weights['W_rec'],
 
 plot_weights(weights['W_in'])
 plot_weights(weights['W_out'])
-
-daleModel.save("weights/seg_output_20_1_01_01")
 
 
 #%%
