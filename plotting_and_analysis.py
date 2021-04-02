@@ -11,16 +11,50 @@ from scipy.stats import lognorm
 from scipy.stats import norm
 import os
 from matplotlib import cm
-
+import pandas as pd
 from matplotlib import colors
 
-
+import csv
 
 %matplotlib inline
+
+def count_ipsi_pref(array1, array2):
+    list_of_indices = []
+    for i in range(1,len(array1)):
+        if array1[i] <= 0:
+            list_of_indices.append(i)
+          
+    array1 = np.delete(array1, list_of_indices)
+    array2 = np.delete(array2, list_of_indices)
+    
+    array3 = array1 - array2
+    array3 = array3[array3>0]
+    nb_ipsi_pref = array3.size
+    
+    return nb_ipsi_pref
 
 #%%
 
 dalemodel_test = dict(np.load("IpsiContra_In02_Rec02_Col10_s0.npz", allow_pickle=True))
+#%%
+
+
+for item in os.listdir('outputs'):
+    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
+
+    stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]
+    loss = dalemodel_test['losses'][-1]
+    
+    filename = item[0:-4]
+    
+    P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
+    P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
+    N_cal = int(item[25:27])
+    seed = int(item[29])
+    variance = np.std(stim_pref['max_hem2stim'][0:40]) * np.std(stim_pref['max_hem1stim'][40:80])
+
+
+
 #%%
 #plots the positions of the connection probability
 figure = plt.figure()
@@ -111,11 +145,18 @@ plt.tight_layout()
 #%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
 
-var = np.array([])
+model_info = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
+                                     'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
+                                     'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
+                                     'max_hem1_ipsi', 'max_hem1_contra', 'max_hem2_ipsi', 'max_hem2_contra',
+                                     'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref'])
+
 for item in os.listdir('outputs'):
+    
     dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
 
     stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]
+    
     loss = dalemodel_test['losses'][-1]
     
     filename = item[0:-4]
@@ -124,11 +165,35 @@ for item in os.listdir('outputs'):
     P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
     N_cal = int(item[25:27])
     seed = int(item[29])
-    variance = np.std(stim_pref['max_hem2stim'][0:40]) * np.std(stim_pref['max_hem1stim'][40:80])
-    
-    
-    var = np.append(var, [P_in, P_rec, N_cal, seed, variance])
 
+    mean_hem1_ipsi = np.mean(stim_pref['max_hem2stim'][0:40])
+    mean_hem1_contra = np.mean(stim_pref['max_hem1stim'][0:40])
+    mean_hem2_ipsi = np.mean(stim_pref['max_hem1stim'][40:80])
+    mean_hem2_contra = np.mean(stim_pref['max_hem2stim'][40:80])
+    
+    var_hem1_ipsi = np.std(stim_pref['max_hem2stim'][0:40])
+    var_hem1_contra = np.std(stim_pref['max_hem1stim'][0:40])
+    var_hem2_ipsi = np.std(stim_pref['max_hem1stim'][40:80])
+    var_hem2_contra = np.std(stim_pref['max_hem2stim'][40:80])
+    
+    max_hem1_ipsi = np.max(stim_pref['max_hem2stim'][0:40])
+    max_hem1_contra = np.max(stim_pref['max_hem1stim'][0:40])
+    max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
+    max_hem2_contra = np.max(stim_pref['max_hem2stim'][40:80])
+    
+    
+    nb_hem1_ipsi_pref = count_ipsi_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
+    nb_hem2_ipsi_pref = count_ipsi_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
+    
+    
+    new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
+               'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
+               'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
+               'max_hem1_ipsi':max_hem1_ipsi, 'max_hem1_contra':max_hem1_contra, 'max_hem2_ipsi':max_hem2_ipsi, 'max_hem2_contra':max_hem2_contra,
+               'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref}
+
+    model_info = model_info.append(new_row, ignore_index = True)
+    
     # figure = plt.figure(figsize=(6,6))
     # ax1 = plt.subplot(111)
     # ax1.scatter(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], c = 'coral', label = 'hemisphere 1', alpha=0.6)
@@ -142,11 +207,16 @@ for item in os.listdir('outputs'):
     # ax1.legend()
     # ax1.set_xlabel('stim in hem 1')
     # ax1.set_ylabel('stim in hem 2')
-    
-var = var.reshape(int(var.shape[0]/5), 5)
+   
+model_info.to_csv('model_info.csv')
 #%%
 def take_first(elem):
     return elem[0]
+
+
+columns = ['P_in', 'P_rec', 'N_cal', 'seed']
+var = model_info[columns].to_numpy()
+
 
     
 var_sort0 = np.array(sorted(var, key=take_first))
@@ -165,6 +235,7 @@ for i in [0,1,2,3]:
         for k in [0,1,2,3]:
             var_sort0[i][j][k] = np.array(sorted(var_sort0[i][j][k], key=take_fourth))
 
+#%%
 
 ax = 1
 fig4 = plt.figure(figsize = (10,10))
