@@ -214,22 +214,22 @@ def take_first(elem):
     return elem[0]
 
 
-columns = ['P_in', 'P_rec', 'N_cal', 'seed']
+columns = ['P_in', 'P_rec', 'N_cal', 'seed', 'nb_hem1_ipsi_pref', 'nb_hem1_ipsi_pref']
 var = model_info[columns].to_numpy()
 
 
     
 var_sort0 = np.array(sorted(var, key=take_first))
-var_sort0 = var_sort0.reshape(4, 48, 5)
+var_sort0 = var_sort0.reshape(4, 48, len(columns))
 for i in [0,1,2,3]:
     var_sort0[i] = np.array(sorted(var_sort0[i], key=take_second))
 
-var_sort0 = var_sort0.reshape(4, 4, 12, 5)
+var_sort0 = var_sort0.reshape(4, 4, 12, len(columns))
 for i in [0,1,2,3]:
     for j in [0,1,2,3]:
         var_sort0[i][j] = np.array(sorted(var_sort0[i][j], key=take_third))
         
-var_sort0 = var_sort0.reshape(4, 4, 4, 3, 5)
+var_sort0 = var_sort0.reshape(4, 4, 4, 3, len(columns))
 for i in [0,1,2,3]:
     for j in [0,1,2,3]:
         for k in [0,1,2,3]:
@@ -242,10 +242,10 @@ fig4 = plt.figure(figsize = (10,10))
 for i in range(4):
     for j in range(4):
         plt.subplot(4, 4, ax)
-        plt.imshow(var_sort0[i,j,:,:,4], cmap='viridis', norm=colors.Normalize(vmin=0.003, vmax=0.2))
+        plt.imshow(float(var_sort0[i,j,:,:,4]), cmap='viridis', norm=colors.Normalize(vmin=0.003, vmax=0.2))
         ax=ax+1
         
-fig4.colorbar(mappable=var_sort0[0,0,:,:,4], cmap='viridis', fraction=.1, orientation='horizontal',)
+fig4.colorbar(mappable=float(var_sort0[0,0,:,:,4], cmap='viridis', fraction=.1, orientation='horizontal',)
 #%%
 
 N = 4
