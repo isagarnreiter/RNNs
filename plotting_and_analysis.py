@@ -33,6 +33,19 @@ def count_ipsi_pref(array1, array2):
     
     return nb_ipsi_pref
 
+
+def take_first(elem):
+    return elem[0]
+
+def take_second(elem):
+    return elem[1]
+
+def take_third(elem):
+    return elem[2]
+
+def take_fourth(elem):
+    return elem[3]
+
 #%%
 
 dalemodel_test = dict(np.load("IpsiContra_In02_Rec02_Col10_s0.npz", allow_pickle=True))
@@ -73,7 +86,7 @@ ax1.set_zlim(0,1)
 #plot the loss during training
 
 fig1= plt.figure()
-plt.plot(losses)
+plt.plot(model_best[5])
 plt.ylabel("Loss")
 plt.xlabel("Training Iteration")
 plt.title("Loss During Training")
@@ -210,30 +223,74 @@ for item in os.listdir('outputs'):
    
 model_info.to_csv('model_info.csv')
 #%%
-def take_first(elem):
-    return elem[0]
+
+model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
 
 
-columns = ['P_in', 'P_rec', 'N_cal', 'seed', 'nb_hem1_ipsi_pref', 'nb_hem1_ipsi_pref']
-var = model_info[columns].to_numpy()
-
-
+var = model_info[model_info.columns[1:]].to_numpy()
+columns = model_info.columns[1:]
     
+
 var_sort0 = np.array(sorted(var, key=take_first))
-var_sort0 = var_sort0.reshape(4, 48, len(columns))
-for i in [0,1,2,3]:
+var_sort0 = var_sort0.reshape(4, 48, len(model_info.columns[1:]))
+for i in range(4):
     var_sort0[i] = np.array(sorted(var_sort0[i], key=take_second))
 
-var_sort0 = var_sort0.reshape(4, 4, 12, len(columns))
-for i in [0,1,2,3]:
-    for j in [0,1,2,3]:
+var_sort0 = var_sort0.reshape(4, 4, 12, len(model_info.columns[1:]))
+for i in range(4):
+    for j in range(4):
         var_sort0[i][j] = np.array(sorted(var_sort0[i][j], key=take_third))
         
-var_sort0 = var_sort0.reshape(4, 4, 4, 3, len(columns))
-for i in [0,1,2,3]:
-    for j in [0,1,2,3]:
-        for k in [0,1,2,3]:
+var_sort0 = var_sort0.reshape(4, 4, 4, 3, len(model_info.columns[1:]))
+for i in range(4):
+    for j in range(4):
+        for k in range(4):
             var_sort0[i][j][k] = np.array(sorted(var_sort0[i][j][k], key=take_fourth))
+
+#%%
+
+model_best = model_info[model_info.columns[:]].to_numpy()
+columns = model_info.columns[:]
+
+indexes=[]
+for i in range(model_best.shape[0]):
+    if model_best[i][18]<=2 or model_best[i][18]>=10 or model_best[i][19]<=2 or model_best[i][19]>=10 or abs(model_best[i][18]-model_best[i][19]) >= 3:
+        indexes.append(i)
+
+model_best = np.delete(model_best, indexes, axis=0)
+
+        
+model_best_df = pd.DataFrame(model_best, columns = columns)
+#model_best_df.to_csv('model_best.csv')
+
+#%%
+mean_total = np.mean(model_best[:,6:10], axis=1)
+mean_var = np.mean(model_best[:, 10:14], axis =1)
+
+
+fig_params = plt.figure(figsize=(5,5))
+ax1 = plt.subplot(221)
+ax1.hist(model_best[:,1])
+ax1.set_xticks([0.2, 0.5, 0.7, 1])
+ax1.set_xlabel('P_in')
+
+ax2 = plt.subplot(222)
+ax2.hist(model_best[:,2])
+ax2.set_xticks(ticks=[0.2, 0.5, 0.7, 1])
+ax2.set_xlabel('P_rec')
+
+ax3 = plt.subplot(223)
+ax3.hist(model_best[:,3])
+ax3.set_xticks([10, 20, 30, 40])
+ax3.set_xlabel('N_cal')
+
+ax4 = plt.subplot(224)
+ax4.hist(model_best[:,4])
+ax4.set_xticks([0,1,2])
+ax4.set_yticks([0,3,6,9,12])
+ax4.set_xlabel('seed')
+
+plt.tight_layout()
 
 #%%
 
@@ -257,8 +314,11 @@ images = []
 for i in range(N):
     for j in range(N):
         # Generate data with a range that varies from one plot to the next.
-        data = var_sort0[i,j,:,:,4]
+        data = var_sort0[i,j,:,:,0]
         images.append(axs[i, j].imshow(data))
+        axs[i, j].set_yticks([0,1,2,3])
+        axs[i, j].set_yticklabels([10,20,30,40])
+        axs[i, j].set_xticks([0,1,2])
         axs[i, j].label_outer()
 
 # Find the min and max of all colors for use in setting the color scale.
