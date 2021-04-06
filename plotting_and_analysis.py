@@ -23,7 +23,6 @@ def count_ipsi_pref(array1, array2):
     for i in range(1,len(array1)):
         if array1[i] <= 0:
             list_of_indices.append(i)
-          
     array1 = np.delete(array1, list_of_indices)
     array2 = np.delete(array2, list_of_indices)
     
@@ -65,7 +64,6 @@ for item in os.listdir('outputs'):
     N_cal = int(item[25:27])
     seed = int(item[29])
     variance = np.std(stim_pref['max_hem2stim'][0:40]) * np.std(stim_pref['max_hem1stim'][40:80])
-
 
 
 #%%
@@ -156,7 +154,7 @@ plt.tight_layout()
 
 
 #%% 
-#plot the relationship between reponse to stim 1 and stim2 for each neurons
+#produce dataframe of with info about all models
 
 model_info = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
                                      'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
@@ -167,11 +165,8 @@ model_info = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed
 for item in os.listdir('outputs'):
     
     dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
-
-    stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]
-    
-    loss = dalemodel_test['losses'][-1]
-    
+    stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]    
+    loss = dalemodel_test['losses'][-1]    
     filename = item[0:-4]
     
     P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
@@ -194,10 +189,8 @@ for item in os.listdir('outputs'):
     max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
     max_hem2_contra = np.max(stim_pref['max_hem2stim'][40:80])
     
-    
     nb_hem1_ipsi_pref = count_ipsi_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
     nb_hem2_ipsi_pref = count_ipsi_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
-    
     
     new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
                'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
@@ -223,31 +216,7 @@ for item in os.listdir('outputs'):
    
 model_info.to_csv('model_info.csv')
 #%%
-
-model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
-
-
-var = model_info[model_info.columns[1:]].to_numpy()
-columns = model_info.columns[1:]
-    
-
-var_sort0 = np.array(sorted(var, key=take_first))
-var_sort0 = var_sort0.reshape(4, 48, len(model_info.columns[1:]))
-for i in range(4):
-    var_sort0[i] = np.array(sorted(var_sort0[i], key=take_second))
-
-var_sort0 = var_sort0.reshape(4, 4, 12, len(model_info.columns[1:]))
-for i in range(4):
-    for j in range(4):
-        var_sort0[i][j] = np.array(sorted(var_sort0[i][j], key=take_third))
-        
-var_sort0 = var_sort0.reshape(4, 4, 4, 3, len(model_info.columns[1:]))
-for i in range(4):
-    for j in range(4):
-        for k in range(4):
-            var_sort0[i][j][k] = np.array(sorted(var_sort0[i][j][k], key=take_fourth))
-
-#%%
+#make seperate dataframe with defined number of ipsi preferring cells
 
 model_best = model_info[model_info.columns[:]].to_numpy()
 columns = model_info.columns[:]
@@ -259,66 +228,74 @@ for i in range(model_best.shape[0]):
 
 model_best = np.delete(model_best, indexes, axis=0)
 
-        
 model_best_df = pd.DataFrame(model_best, columns = columns)
-#model_best_df.to_csv('model_best.csv')
+
+#model_best_df.to_csv('model_best.csv')#%%
 
 #%%
-mean_total = np.mean(model_best[:,6:10], axis=1)
-mean_var = np.mean(model_best[:, 10:14], axis =1)
+#load dataframes
 
+model_best = pd.read_csv('model_best.csv', index_col='Unnamed: 0')
+model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
 
-fig_params = plt.figure(figsize=(5,5))
-ax1 = plt.subplot(221)
-ax1.hist(model_best[:,1])
-ax1.set_xticks([0.2, 0.5, 0.7, 1])
-ax1.set_xlabel('P_in')
+#%%
+arr_info = model_info[model_info.columns[1:]].to_numpy()
+columns = model_info.columns[1:]
 
-ax2 = plt.subplot(222)
-ax2.hist(model_best[:,2])
-ax2.set_xticks(ticks=[0.2, 0.5, 0.7, 1])
-ax2.set_xlabel('P_rec')
+file = np.array(sorted(arr_info, key=take_first))
+file = file.reshape(4, 48, len(columns))
+for i in range(4):
+    file[i] = np.array(sorted(file[i], key=take_second))
+file = file.reshape(4, 4, 12, len(columns))
+for i in range(4):
+    for j in range(4):
+        file[i][j] = np.array(sorted(file[i][j], key=take_third))        
+file = file.reshape(4, 4, 4, 3, len(columns))
+for i in range(4):
+    for j in range(4):
+        for k in range(4):
+            file[i][j][k] = np.array(sorted(file[i][j][k], key=take_fourth))
 
-ax3 = plt.subplot(223)
-ax3.hist(model_best[:,3])
-ax3.set_xticks([10, 20, 30, 40])
-ax3.set_xlabel('N_cal')
+#%%
+# mean_total = np.mean(model_best[:,6:10], axis=1)
+# mean_var = np.mean(model_best[:, 10:14], axis =1)
 
-ax4 = plt.subplot(224)
-ax4.hist(model_best[:,4])
-ax4.set_xticks([0,1,2])
-ax4.set_yticks([0,3,6,9,12])
-ax4.set_xlabel('seed')
+fig, ax = plt.subplots(2, 2, figsize=(5,5))
+
+x=0
+labels = ['P_in', 'P_rec', 'N_cal', 'seed']
+
+for i in [0,1]:
+    for j in [0,1]:        
+        ax[i,j].hist(model_best[[labels[x]]])
+        ax[i,j].set_xlabel(labels[x])
+        x=x+1
+        
+ax[0,0].set_xticks([0.2, 0.5, 0.7, 1])
+ax[0,1].set_xticks([0.2, 0.5, 0.7, 1])
+ax[1,0].set_xticks([10, 20, 30, 40])
+ax[1,1].set_xticks([0,1,2])
+ax[1,1].set_yticks([0,3,6,9,12])
 
 plt.tight_layout()
 
 #%%
 
-ax = 1
-fig4 = plt.figure(figsize = (10,10))
-for i in range(4):
-    for j in range(4):
-        plt.subplot(4, 4, ax)
-        plt.imshow(float(var_sort0[i,j,:,:,4]), cmap='viridis', norm=colors.Normalize(vmin=0.003, vmax=0.2))
-        ax=ax+1
-        
-fig4.colorbar(mappable=float(var_sort0[0,0,:,:,4], cmap='viridis', fraction=.1, orientation='horizontal',)
-#%%
-
 N = 4
 
-fig, axs = plt.subplots(N, N)
-fig.suptitle('Multiple images')
-
+fig, axs = plt.subplots(N, N, figsize=(4,6))
+fig.suptitle('number of neurons with a preference for ipsilateral stim')
 images = []
 for i in range(N):
     for j in range(N):
         # Generate data with a range that varies from one plot to the next.
-        data = var_sort0[i,j,:,:,0]
-        images.append(axs[i, j].imshow(data))
+        data = np.sum(var_sort0[i,j,:,:,17:19], axis=2)
+        axs[i, j].imshow(data, aspect='auto')
+        images.append(axs[i, j].imshow(data, aspect='auto'))
         axs[i, j].set_yticks([0,1,2,3])
-        axs[i, j].set_yticklabels([10,20,30,40])
+        axs[i, j].set_yticklabels([10,20,30,40], size=8)
         axs[i, j].set_xticks([0,1,2])
+        axs[i, j].set_xticklabels([0,1,2], size=8)
         axs[i, j].label_outer()
 
 # Find the min and max of all colors for use in setting the color scale.
@@ -328,8 +305,7 @@ norm = colors.Normalize(vmin=vmin, vmax=vmax)
 for im in images:
     im.set_norm(norm)
 
-fig.colorbar(images[0], ax=axs, orientation='horizontal', fraction=.05)
-
+fig.colorbar(images[0], ax=axs, orientation='horizontal', fraction=.07)
 
 # Make images respond to changes in the norm of other images (e.g. via the
 # "edit axis, curves and images parameters" GUI on Qt), but be careful not to
@@ -341,12 +317,43 @@ def update(changed_image):
             im.set_cmap(changed_image.get_cmap())
             im.set_clim(changed_image.get_clim())
 
-
 for im in images:
     im.callbacksSM.connect('changed', update)
 
 plt.show()
 
+#%% compare distribution of variance and mean response
+
+mean_resp_all = np.array(np.mean(model_info[list(columns[5:9])], axis=1))
+mean_resp_best = np.array(np.mean(model_best[list(columns[5:9])], axis=1))
+
+from scipy.stats import gaussian_kde
+
+resp_all_dens = gaussian_kde(list(mean_resp_all))
+resp_best_dens = gaussian_kde(list(mean_resp_best))
+
+#xs = np.linspace(-0.3, 0.02, 100)
+xs = np.linspace(0.1, 0.5, 100)
+
+
+dens, ax = plt.subplots(1,1)
+ax.set_title('mean response distribution')
+ax.hist([mean_resp_all, mean_resp_best],  bins=10 , color=['red', 'blue'], label = ['all models', 'best models'])
+#ax.plot(xs, resp_all_dens(xs), c='red', label='all')
+#ax.plot(xs, resp_best_dens(xs), c='blue', label='best')
+ax.legend()
+plt.show()
+#%%
+
+axes =plt.figure(figsize = (4,6))
+ax2 = axes.add_axes([0.05,0.25,0.9,0.65])
+ax2.set_ylim(1,0)
+ax2.set_yticks([0.15, 0.4,0.65,0.9])
+ax2.set_yticklabels([0.2,0.5,0.7,1])
+ax2.set_ylabel('P(in)')
+ax2.set_xticks([0.15, 0.4, 0.65, 0.9])
+ax2.set_xticklabels([0.2, 0.5, 0.7, 1])
+ax2.set_xlabel('P(rec)')
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
 
