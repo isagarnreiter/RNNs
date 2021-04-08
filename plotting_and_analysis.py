@@ -46,125 +46,23 @@ def take_fourth(elem):
     return elem[3]
 
 #%%
+#load dataframes
 
-dalemodel_test = dict(np.load("IpsiContra_In02_Rec02_Col10_s0.npz", allow_pickle=True))
-#%%
-
-
-for item in os.listdir('outputs'):
-    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
-
-    stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]
-    loss = dalemodel_test['losses'][-1]
-    
-    filename = item[0:-4]
-    
-    P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
-    P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
-    N_cal = int(item[25:27])
-    seed = int(item[29])
-    variance = np.std(stim_pref['max_hem2stim'][0:40]) * np.std(stim_pref['max_hem1stim'][40:80])
-
-
-#%%
-#plots the positions of the connection probability
-figure = plt.figure()
-ax1 = plt.subplot(111) 
-
-ax1 = plt.axes(projection ='3d')
-ax1.scatter(P_in, P_rec, P_out)
-ax1.set_xlabel('P_in')
-ax1.set_ylabel('P_rec')
-ax1.set_zlabel('P_out')
-ax1.set_xlim(0,1)
-ax1.set_ylim(0,1)
-ax1.set_zlim(0,1)
-
-#%%
-#plot the loss during training
-
-fig1= plt.figure()
-plt.plot(model_best[5])
-plt.ylabel("Loss")
-plt.xlabel("Training Iteration")
-plt.title("Loss During Training")
-
-#%%
-
-#test network on test batch
-
-# ---------------------- Test the trained model ---------------------------
-x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
-model_output, model_state = daleModel.test(x) # run the model on input x
-
-# ---------------------- Plot the results ---------------------------
-trial_nb = 0
-for i in range(len(mask[trial_nb])):
-    if mask[trial_nb][i][0] == 0:
-        y[trial_nb][i] =+ np.nan
-
-dt = params['dt']
-
-fig2 = plt.figure(figsize=(20,8))
-
-ax1 = plt.subplot(221)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), x[trial_nb,:,:])
-ax1.set_title("Input", fontsize = 16)
-ax1.legend(["Input Channel 1", "Input Channel 2", 'go cue'])
-
-ax2 = plt.subplot(222)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), y[trial_nb,:,:])
-ax2.set_title("Expected output", fontsize = 16)
-ax2.set_ylim(-0.1,1.1)
-
-ax3 = plt.subplot(224)
-ax3.plot(range(0, len(x[0,:,:])*dt,dt), model_output[trial_nb,:,:])
-ax3.set_xlabel("Time (ms)", fontsize = 16)
-ax3.set_title("Output", fontsize = 16)
-ax3.set_ylim(-0.1,1.1)
-
-ax4 = plt.subplot(223)
-ax4.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,:])
-ax4.set_xlabel("Time (ms)", fontsize = 16)
-ax4.set_title("State of each neuron", fontsize = 16)
-ax4.set_ylim(-0.5,0.5)
-
-fig2.tight_layout()
-
-#%%
-
-#compare states of different neural populations
-fig3 = plt.figure()
-ax1 = plt.subplot(211)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,80:90], c = 'blue', alpha=0.6)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,0:30], c = 'red', alpha=0.6)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,30:40], c = 'black', alpha=0.6)
-ax1.set_ylim(-0.5,0.5)
-ax1.set_title("State of each neuron in H1", fontsize = 10)
-
-ax2 = plt.subplot(212)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,40:70], c='red', alpha=0.6)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,90:100], c='blue', alpha=0.6)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,70:80], c='black', alpha=0.6)
-ax2.set_xlabel("Time (ms)", fontsize = 10)
-ax2.set_ylim(-0.5,0.5)
-ax2.set_title("State of each neuron in H2", fontsize = 10)
-
-plt.tight_layout()
-
+model_best = pd.read_csv('model_best.csv', index_col='Unnamed: 0')
+model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
 
 #%% 
 #produce dataframe of with info about all models
 
-model_info = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
-                                     'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
-                                     'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
-                                     'max_hem1_ipsi', 'max_hem1_contra', 'max_hem2_ipsi', 'max_hem2_contra',
-                                     'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref'])
+# model_info = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
+#                                      'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
+#                                      'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
+#                                      'max_hem1_ipsi', 'max_hem1_contra', 'max_hem2_ipsi', 'max_hem2_contra',
+#                                      'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref'])
 
-for item in os.listdir('outputs'):
+for item in os.listdir('outputs2'):
     
-    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
+    dalemodel_test = dict(np.load(f'outputs2/{item}', allow_pickle=True))
     stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]    
     loss = dalemodel_test['losses'][-1]    
     filename = item[0:-4]
@@ -183,7 +81,6 @@ for item in os.listdir('outputs'):
     var_hem1_contra = np.std(stim_pref['max_hem1stim'][0:40])
     var_hem2_ipsi = np.std(stim_pref['max_hem1stim'][40:80])
     var_hem2_contra = np.std(stim_pref['max_hem2stim'][40:80])
-    
     max_hem1_ipsi = np.max(stim_pref['max_hem2stim'][0:40])
     max_hem1_contra = np.max(stim_pref['max_hem1stim'][0:40])
     max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
@@ -191,12 +88,11 @@ for item in os.listdir('outputs'):
     
     nb_hem1_ipsi_pref = count_ipsi_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
     nb_hem2_ipsi_pref = count_ipsi_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
-    
     new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
-               'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
-               'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
-               'max_hem1_ipsi':max_hem1_ipsi, 'max_hem1_contra':max_hem1_contra, 'max_hem2_ipsi':max_hem2_ipsi, 'max_hem2_contra':max_hem2_contra,
-               'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref}
+                'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
+                'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
+                'max_hem1_ipsi':max_hem1_ipsi, 'max_hem1_contra':max_hem1_contra, 'max_hem2_ipsi':max_hem2_ipsi, 'max_hem2_contra':max_hem2_contra,
+                'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref}
 
     model_info = model_info.append(new_row, ignore_index = True)
     
@@ -213,7 +109,8 @@ for item in os.listdir('outputs'):
     # ax1.legend()
     # ax1.set_xlabel('stim in hem 1')
     # ax1.set_ylabel('stim in hem 2')
-   
+    # figure.savefig(f'stimpref_figs/{item[0:-4]}')
+    
 model_info.to_csv('model_info.csv')
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
@@ -223,22 +120,75 @@ columns = model_info.columns[:]
 
 indexes=[]
 for i in range(model_best.shape[0]):
-    if model_best[i][18]<=2 or model_best[i][18]>=10 or model_best[i][19]<=2 or model_best[i][19]>=10 or abs(model_best[i][18]-model_best[i][19]) >= 3:
+    if model_best[i][18]<=2 or model_best[i][18]>=12 or model_best[i][19]<=2 or model_best[i][19]>=12 or abs(model_best[i][18]-model_best[i][19]) >= 3:
         indexes.append(i)
 
 model_best = np.delete(model_best, indexes, axis=0)
-
 model_best_df = pd.DataFrame(model_best, columns = columns)
-
-#model_best_df.to_csv('model_best.csv')#%%
-
-#%%
-#load dataframes
-
-model_best = pd.read_csv('model_best.csv', index_col='Unnamed: 0')
-model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
+model_best_df.to_csv('model_best.csv')
 
 #%%
+
+#add all figures generated for stim preference to a seperate folder
+
+import shutil
+for item in os.listdir('stimpref_figs'):
+    if f'{item[:-3]}npz' in np.array(model_best[['filename']])[:,0]:
+        newPath = shutil.copy(f'stimpref_figs\{item}', 'figs_select')
+
+#%%
+
+#test network on test batch
+
+dalemodel_test = dict(np.load('outputs/IpsiContra_In05_Rec02_Col20_s2.npz', allow_pickle=True))
+test_batch = dalemodel_test['test_batch'].reshape(1)[0]
+
+# ---------------------- Plot the results ---------------------------
+trial_nb = 9
+for i in range(len(test_batch['mask'][trial_nb])):
+    if test_batch['mask'][trial_nb][i][0] == 0:
+        test_batch['y'][trial_nb][i] =+ np.nan
+
+dt = 10
+results = ['x', 'y', 'model_state', 'model_output']
+labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
+lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
+x_len = range(0,len(test_batch['x'][0,:,:])*dt,dt)
+
+
+fig2, ax = plt.subplots(2, 2, figsize=(20,8))
+x=0
+for j in range(2):
+
+    for i in range(2):
+        ax[i,j].plot(x_len, test_batch[results[x]][trial_nb,:,:])
+        ax[i,j].set_title(labels[x], fontsize = 16)
+        x= x+1
+        
+    ax[i,j].set_xlabel("Time (ms)", fontsize = 16)
+
+ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
+fig2.tight_layout()
+
+#compare states of different neural populations
+data = {'H1':test_batch['model_state'][trial_nb,:,0:40], 'H2':test_batch['model_state'][trial_nb,:,40:80]}
+keys = list(data.keys())
+
+fig3, ax = plt.subplots(2,1)
+for i in range(2):
+    ax[i].plot(x_len, data[keys[i]], alpha=0.8)
+    ax[i].set_ylim(-0.8,0.8)
+    ax[i].set_title(f"State of excitatory neuron in {keys[i]}", fontsize = 10)
+ax[1].set_xlabel("Time (ms)", fontsize = 10)
+
+fig3.tight_layout()
+
+
+
+#%%
+
+#create structured np.array to produce a heat map for different variables 
+
 arr_info = model_info[model_info.columns[1:]].to_numpy()
 columns = model_info.columns[1:]
 
@@ -257,8 +207,7 @@ for i in range(4):
             file[i][j][k] = np.array(sorted(file[i][j][k], key=take_fourth))
 
 #%%
-# mean_total = np.mean(model_best[:,6:10], axis=1)
-# mean_var = np.mean(model_best[:, 10:14], axis =1)
+#plot histogram of parameters in model_best file
 
 fig, ax = plt.subplots(2, 2, figsize=(5,5))
 
@@ -271,11 +220,10 @@ for i in [0,1]:
         ax[i,j].set_xlabel(labels[x])
         x=x+1
         
-ax[0,0].set_xticks([0.2, 0.5, 0.7, 1])
-ax[0,1].set_xticks([0.2, 0.5, 0.7, 1])
+ax[0,0].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
+ax[0,1].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
 ax[1,0].set_xticks([10, 20, 30, 40])
 ax[1,1].set_xticks([0,1,2])
-ax[1,1].set_yticks([0,3,6,9,12])
 
 plt.tight_layout()
 
@@ -322,10 +270,10 @@ for im in images:
 
 plt.show()
 
-#%% compare distribution of variance and mean response
+#%% compare distribution of variance and mean response between model_info and model_best file
 
-mean_resp_all = np.array(np.mean(model_info[list(columns[5:9])], axis=1))
-mean_resp_best = np.array(np.mean(model_best[list(columns[5:9])], axis=1))
+mean_resp_all = np.array(np.mean(model_info[list(columns[9:13])], axis=1))
+mean_resp_best = np.array(np.mean(model_best[list(columns[9:13])], axis=1))
 
 from scipy.stats import gaussian_kde
 
@@ -343,6 +291,7 @@ ax.hist([mean_resp_all, mean_resp_best],  bins=10 , color=['red', 'blue'], label
 #ax.plot(xs, resp_best_dens(xs), c='blue', label='best')
 ax.legend()
 plt.show()
+
 #%%
 
 axes =plt.figure(figsize = (4,6))
@@ -354,6 +303,7 @@ ax2.set_ylabel('P(in)')
 ax2.set_xticks([0.15, 0.4, 0.65, 0.9])
 ax2.set_xticklabels([0.2, 0.5, 0.7, 1])
 ax2.set_xlabel('P(rec)')
+
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
 
