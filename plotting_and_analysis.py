@@ -5,7 +5,9 @@ Created on Mon Mar 22 21:13:02 2021
 @author: Isabelle
 """
 
+from oli_task import PerceptualDiscrimination
 from matplotlib import pyplot as plt
+from psychrnn.backend.models.basic import Basic
 import numpy as np
 from scipy.stats import lognorm
 from scipy.stats import norm
@@ -13,8 +15,9 @@ import os
 from matplotlib import cm
 import pandas as pd
 from matplotlib import colors
-
+import shutil
 import csv
+import fcts
 
 %matplotlib inline
 
@@ -66,17 +69,14 @@ for item in os.listdir('outputs2'):
     stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]    
     loss = dalemodel_test['losses'][-1]    
     filename = item[0:-4]
-    
     P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
     P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
     N_cal = int(item[25:27])
     seed = int(item[29])
-
     mean_hem1_ipsi = np.mean(stim_pref['max_hem2stim'][0:40])
     mean_hem1_contra = np.mean(stim_pref['max_hem1stim'][0:40])
     mean_hem2_ipsi = np.mean(stim_pref['max_hem1stim'][40:80])
     mean_hem2_contra = np.mean(stim_pref['max_hem2stim'][40:80])
-    
     var_hem1_ipsi = np.std(stim_pref['max_hem2stim'][0:40])
     var_hem1_contra = np.std(stim_pref['max_hem1stim'][0:40])
     var_hem2_ipsi = np.std(stim_pref['max_hem1stim'][40:80])
@@ -85,7 +85,6 @@ for item in os.listdir('outputs2'):
     max_hem1_contra = np.max(stim_pref['max_hem1stim'][0:40])
     max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
     max_hem2_contra = np.max(stim_pref['max_hem2stim'][40:80])
-    
     nb_hem1_ipsi_pref = count_ipsi_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
     nb_hem2_ipsi_pref = count_ipsi_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
     new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
@@ -93,9 +92,7 @@ for item in os.listdir('outputs2'):
                 'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
                 'max_hem1_ipsi':max_hem1_ipsi, 'max_hem1_contra':max_hem1_contra, 'max_hem2_ipsi':max_hem2_ipsi, 'max_hem2_contra':max_hem2_contra,
                 'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref}
-
     model_info = model_info.append(new_row, ignore_index = True)
-    
     # figure = plt.figure(figsize=(6,6))
     # ax1 = plt.subplot(111)
     # ax1.scatter(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], c = 'coral', label = 'hemisphere 1', alpha=0.6)
@@ -130,61 +127,83 @@ model_best_df.to_csv('model_best.csv')
 #%%
 
 #add all figures generated for stim preference to a seperate folder
-
-import shutil
 for item in os.listdir('stimpref_figs'):
     if f'{item[:-3]}npz' in np.array(model_best[['filename']])[:,0]:
         newPath = shutil.copy(f'stimpref_figs\{item}', 'figs_select')
+
+
+#%%
+#save weights
+for item in os.listdir('outputs'):
+    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
+    weights = dalemodel_test['weights'].reshape(1)[0]
+    np.savez(f'weights\{item}', **weights)
 
 #%%
 
 #test network on test batch
 
-dalemodel_test = dict(np.load('outputs/IpsiContra_In05_Rec02_Col20_s2.npz', allow_pickle=True))
-test_batch = dalemodel_test['test_batch'].reshape(1)[0]
+task = PerceptualDiscrimination(dt = 10, # The simulation timestep
+                              tau = 100, # The intrinsic time constant of neural state decay.
+                              T = 2500, # The trial length, 
+                              N_batch = 50) # Initialize the task object
 
-# ---------------------- Plot the results ---------------------------
-trial_nb = 9
-for i in range(len(test_batch['mask'][trial_nb])):
-    if test_batch['mask'][trial_nb][i][0] == 0:
-        test_batch['y'][trial_nb][i] =+ np.nan
+network_params = task.get_task_params() # get the params passed in and defined in pd
+network_params['N_rec'] = 100 # set the number of recurrent units in the model
+network_params['name'] = 'model'
+network_params['N_in'] = 3
+network_params['N_out'] = 2
 
 dt = 10
 results = ['x', 'y', 'model_state', 'model_output']
 labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
 lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
-x_len = range(0,len(test_batch['x'][0,:,:])*dt,dt)
 
-
-fig2, ax = plt.subplots(2, 2, figsize=(20,8))
-x=0
-for j in range(2):
-
-    for i in range(2):
-        ax[i,j].plot(x_len, test_batch[results[x]][trial_nb,:,:])
-        ax[i,j].set_title(labels[x], fontsize = 16)
-        x= x+1
+for item in os.listdir('weights'):
         
-    ax[i,j].set_xlabel("Time (ms)", fontsize = 16)
-
-ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
-fig2.tight_layout()
-
-#compare states of different neural populations
-data = {'H1':test_batch['model_state'][trial_nb,:,0:40], 'H2':test_batch['model_state'][trial_nb,:,40:80]}
-keys = list(data.keys())
-
-fig3, ax = plt.subplots(2,1)
-for i in range(2):
-    ax[i].plot(x_len, data[keys[i]], alpha=0.8)
-    ax[i].set_ylim(-0.8,0.8)
-    ax[i].set_title(f"State of excitatory neuron in {keys[i]}", fontsize = 10)
-ax[1].set_xlabel("Time (ms)", fontsize = 10)
-
-fig3.tight_layout()
-
-
-
+    network_params['load_weights_path'] = f'weights/{item}'
+    Model = Basic(network_params)
+    trials = fcts.gen_pol_trials(Model, task)
+    
+    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
+    dalemodel_test = np.append(dalemodel_test, trials)
+    
+    np.savez(f'outputs/{item[0:-4]}', dalemodel_test)
+    
+    for l in list(trials.keys()):
+    #make a figure of the trials
+    
+        for i in range(len(trials[l]['mask'])):
+            if trials[l]['mask'][i][0] == 0:
+                trials[l]['y'][i][0] =+ np.nan
+        
+        x_len = range(0,len(trials[l]['x'])*dt,dt)
+        data = {'H1':trials[l]['model_state'][:,0:40], 'H2':trials[l]['model_state'][:,40:80]}
+        keys = list(data.keys())
+        
+        fig2, ax = plt.subplots(2, 3, figsize=(30,8))
+        fig2.suptitle(f'{l} Trial for: {item}', fontsize=16)
+        x=0
+        for i in range(2):
+            for j in range(2):
+                ax[i,j].plot(x_len, trials[l][results[x]])
+                ax[i,j].set_title(labels[x], fontsize = 14)
+                x= x+1
+                
+            ax[i,2].plot(x_len, data[keys[i]], alpha=0.9)
+            ax[i,2].set_ylim(-0.8,0.8)
+            ax[i,2].set_title(f"{keys[i]}", fontsize = 14)
+        
+        for i in range(3):
+            ax[1,i].set_xlabel("Time (ms)", fontsize = 10)
+            
+        ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
+        
+        fig2.tight_layout()
+        fig2.savefig(f'trials/{item[0:-4]}_{l}')
+    
+    Model.destruct()
+    
 #%%
 
 #create structured np.array to produce a heat map for different variables 

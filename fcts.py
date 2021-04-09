@@ -85,12 +85,13 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     return input_connectivity, rec_connectivity, output_connectivity
 
 
-def stim_pref(daleModel, pd):
-    stim_pref_dict = {}
+def gen_pol_trials(daleModel, pd):
+    trials = {}
     j = [[0.0, 0.6], [0.6, 0.0]]
     k = [2,1]
     
     for i in [0,1]:
+        trials[f'hem{k[i]}stim'] = {}
         params_single_trial = {'intensity_0': j[i][0], 
                                 'intensity_1': j[i][1], 
                                 'random_output': 1, 
@@ -103,9 +104,23 @@ def stim_pref(daleModel, pd):
     
         x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
         x, y, mask = np.array([x]), np.array([y]), np.array([mask]) #add dimension to shape of x, y, mask to fit the test() function and the figure format
-        
+
         model_output, model_state = daleModel.test(x) # run the model on input x
         
-        stim_pref_dict[f'max_hem{k[i]}stim'] = model_state[0,50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
-           
+        trials[f'hem{k[i]}stim']['x'] = x[0]
+        trials[f'hem{k[i]}stim']['y'] = y[0]
+        trials[f'hem{k[i]}stim']['mask'] = mask[0]
+        trials[f'hem{k[i]}stim']['model_output'] = model_output[0]
+        trials[f'hem{k[i]}stim']['model_state'] = model_state[0]
+        
+    return trials
+
+
+def stim_pref(daleModel, pd):
+    stim_pref_dict = {}
+    trials = gen_pol_trials(daleModel, pd)
+    
+    stim_pref_dict['max_hem1stim'] = trials['max_hem1stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+    stim_pref_dict['max_hem2stim'] = trials['max_hem2stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+
     return stim_pref_dict

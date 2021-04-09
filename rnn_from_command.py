@@ -36,6 +36,8 @@ pd = PerceptualDiscrimination(dt = 10, # The simulation timestep
                               T = 2500, # The trial length, 
                               N_batch = 50) # Initialize the task object
 
+
+
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
 dale_network_params['name'] = 'dale_network'
 dale_network_params['N_rec'] = 100 # set the number of recurrent units in the model
@@ -67,10 +69,7 @@ losses, initialTime, trainTime = daleModel.train(pd, train_params)
 
 # Test the trained model and save the test batch in a dictionary ---------------------------
 # only first 10 trials are saved because otherwise the file becomes too big
-x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
-model_output, model_state = daleModel.test(x) # run the model on input x
-Test_batch = {'x':x[0:10], 'y':y[0:10], 'mask':mask[0:10], 'model_output':model_output[0:10], 'model_state':model_state[0:10]} 
-
+trials = fcts.gen_pol_trials(daleModel, pd)
 
 stim_pref_dict = fcts.stim_pref(daleModel, pd) # Get the weights of the network
 weights = daleModel.get_weights() # Fetch the weights of the network 
@@ -81,7 +80,7 @@ np.savez(f'IpsiContra_In{str(P_in)[0]+str(P_in)[2]}_Rec{str(P_rec)[0]+str(P_rec)
          losses=losses, 
          weights=weights, 
          stim_pref=stim_pref_dict,
-         test_batch=Test_batch)
+         trials=trials)
 
 print(f'model saved under IpsiContra_IN{str(P_in)[0]+str(P_in)[2]}_REC{str(P_rec)[0]+str(P_rec)[2]}_Col{N_callosal}_s{seed}')
 
