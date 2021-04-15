@@ -72,7 +72,7 @@ weights = daleModel.get_weights() # Fetch the weights of the network
 
 
 # Save the loss, stimulus preference and weights of the network in npz file ---------------------------
-np.savez(f'/IpsiContra_In{str(P_in)[0]+str(P_in)[2:4]}_Rec{str(P_rec)[0]+str(P_rec)[2:4]}_Cal{N_callosal}_s{seed}',  
+np.savez(f'IpsiContra_In{str(P_in)[0]+str(P_in)[2:4]}_Rec{str(P_rec)[0]+str(P_rec)[2:4]}_Cal{N_callosal}_s{seed}',  
          params=params,
          losses=losses, 
          weights=weights, 
