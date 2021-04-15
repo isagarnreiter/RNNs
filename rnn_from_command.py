@@ -59,7 +59,7 @@ daleModel = Basic(dale_network_params)
 
 # Initiate training parameters ---------------------------
 train_params = {}
-train_params['training_iters'] = 2000 # number of iterations to train for Default: 50000
+train_params['training_iters'] = 200000 # number of iterations to train for Default: 50000
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
 
 # Train a basic model ---------------------------
