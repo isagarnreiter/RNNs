@@ -116,11 +116,10 @@ def gen_pol_trials(daleModel, pd):
     return trials
 
 
-def stim_pref(daleModel, pd):
+def stim_pref(trials):
     stim_pref_dict = {}
-    trials = gen_pol_trials(daleModel, pd)
     
-    stim_pref_dict['max_hem1stim'] = trials['max_hem1stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
-    stim_pref_dict['max_hem2stim'] = trials['max_hem2stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+    stim_pref_dict['max_hem1stim'] = trials['hem1stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+    stim_pref_dict['max_hem2stim'] = trials['hem2stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
 
     return stim_pref_dict

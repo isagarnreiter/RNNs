@@ -7,9 +7,7 @@ Created on Fri Nov 13 20:49:12 2020
 
 from oli_task import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
-
 import tensorflow as tf
-
 import numpy as np
 import random
 import fcts
@@ -20,10 +18,12 @@ import sys
 # N_callosal = int(sys.argv[3])
 # seed = int(sys.argv[4])
 
-P_in = 0.5
-P_rec = 0.1
+P_in = 0.75
+P_rec = 0.75
 N_callosal = 10
 seed = 1
+
+params = {'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_callosal, 'seed':seed}
 
 tf.compat.v2.random.set_seed(seed)
 random.seed(seed)
@@ -35,8 +35,6 @@ pd = PerceptualDiscrimination(dt = 10, # The simulation timestep
                               tau = 100, # The intrinsic time constant of neural state decay.
                               T = 2500, # The trial length, 
                               N_batch = 50) # Initialize the task object
-
-
 
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
 dale_network_params['name'] = 'dale_network'
@@ -70,16 +68,14 @@ losses, initialTime, trainTime = daleModel.train(pd, train_params)
 # Test the trained model and save the test batch in a dictionary ---------------------------
 # only first 10 trials are saved because otherwise the file becomes too big
 trials = fcts.gen_pol_trials(daleModel, pd)
-
-stim_pref_dict = fcts.stim_pref(daleModel, pd) # Get the weights of the network
 weights = daleModel.get_weights() # Fetch the weights of the network 
 
 
 # Save the loss, stimulus preference and weights of the network in npz file ---------------------------
-np.savez(f'IpsiContra_In{str(P_in)[0]+str(P_in)[2]}_Rec{str(P_rec)[0]+str(P_rec)[2]}_Col{N_callosal}_s{seed}',  
+np.savez(f'IpsiContra_In{str(P_in)[0]+str(P_in)[2:4]}_Rec{str(P_rec)[0]+str(P_rec)[2:4]}_Cal{N_callosal}_s{seed}',  
+         params=params,
          losses=losses, 
          weights=weights, 
-         stim_pref=stim_pref_dict,
          trials=trials)
 
 print(f'model saved under IpsiContra_IN{str(P_in)[0]+str(P_in)[2]}_REC{str(P_rec)[0]+str(P_rec)[2]}_Col{N_callosal}_s{seed}')

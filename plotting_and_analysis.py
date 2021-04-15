@@ -9,19 +9,22 @@ from oli_task import PerceptualDiscrimination
 from matplotlib import pyplot as plt
 from psychrnn.backend.models.basic import Basic
 import numpy as np
-from scipy.stats import lognorm
-from scipy.stats import norm
+from scipy.stats import lognorm, norm, gaussian_kde
 import os
-from matplotlib import cm
+from matplotlib import cm, colors, colorbar
 import pandas as pd
-from matplotlib import colors
 import shutil
 import csv
 import fcts
+import seaborn as sns
+from pylab import text
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
 
 %matplotlib inline
 
-def count_ipsi_pref(array1, array2):
+def count_pref(array1, array2):
     list_of_indices = []
     for i in range(1,len(array1)):
         if array1[i] <= 0:
@@ -31,9 +34,9 @@ def count_ipsi_pref(array1, array2):
     
     array3 = array1 - array2
     array3 = array3[array3>0]
-    nb_ipsi_pref = array3.size
+    nb_pref = array3.size
     
-    return nb_ipsi_pref
+    return nb_pref
 
 
 def take_first(elem):
@@ -73,25 +76,30 @@ for item in os.listdir('outputs2'):
     P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
     N_cal = int(item[25:27])
     seed = int(item[29])
+    
     mean_hem1_ipsi = np.mean(stim_pref['max_hem2stim'][0:40])
     mean_hem1_contra = np.mean(stim_pref['max_hem1stim'][0:40])
     mean_hem2_ipsi = np.mean(stim_pref['max_hem1stim'][40:80])
     mean_hem2_contra = np.mean(stim_pref['max_hem2stim'][40:80])
+    
     var_hem1_ipsi = np.std(stim_pref['max_hem2stim'][0:40])
     var_hem1_contra = np.std(stim_pref['max_hem1stim'][0:40])
     var_hem2_ipsi = np.std(stim_pref['max_hem1stim'][40:80])
     var_hem2_contra = np.std(stim_pref['max_hem2stim'][40:80])
+    
     max_hem1_ipsi = np.max(stim_pref['max_hem2stim'][0:40])
     max_hem1_contra = np.max(stim_pref['max_hem1stim'][0:40])
     max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
     max_hem2_contra = np.max(stim_pref['max_hem2stim'][40:80])
-    nb_hem1_ipsi_pref = count_ipsi_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
-    nb_hem2_ipsi_pref = count_ipsi_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
+    
+    nb_hem1_ipsi_pref = count_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
+    nb_hem2_ipsi_pref = count_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
     new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
                 'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
                 'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
                 'max_hem1_ipsi':max_hem1_ipsi, 'max_hem1_contra':max_hem1_contra, 'max_hem2_ipsi':max_hem2_ipsi, 'max_hem2_contra':max_hem2_contra,
                 'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref}
+    
     model_info = model_info.append(new_row, ignore_index = True)
     # figure = plt.figure(figsize=(6,6))
     # ax1 = plt.subplot(111)
@@ -108,7 +116,21 @@ for item in os.listdir('outputs2'):
     # ax1.set_ylabel('stim in hem 2')
     # figure.savefig(f'stimpref_figs/{item[0:-4]}')
     
+hem1_contra_pref = np.array([])
+hem2_contra_pref = np.array([])
+for item in os.listdir('outputs'):
+    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
+    stim_pref = dalemodel_test['arr_0'][0]['stim_pref'].reshape(1)[0] 
+    hem1_contra_pref = np.append(hem1_contra_pref, count_pref(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40]))
+    hem2_contra_pref = np.append(hem2_contra_pref, count_pref(stim_pref['max_hem2stim'][40:80], stim_pref['max_hem1stim'][40:80]))
+    
+model_info['hem1_contra_pref'] = hem1_contra_pref
+model_info['hem2_contra_pref'] = hem2_contra_pref
+model_info['total_active_hem1'] = model_info['hem1_contra_pref'] + model_info['nb_hem1_ipsi_pref']
+model_info['total_active_hem2'] = model_info['hem2_contra_pref'] + model_info['nb_hem2_ipsi_pref']
+
 model_info.to_csv('model_info.csv')
+
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
 
@@ -117,19 +139,19 @@ columns = model_info.columns[:]
 
 indexes=[]
 for i in range(model_best.shape[0]):
-    if model_best[i][18]<=2 or model_best[i][18]>=12 or model_best[i][19]<=2 or model_best[i][19]>=12 or abs(model_best[i][18]-model_best[i][19]) >= 3:
+    if model_best[i][18]<=1 or model_best[i][18]>=12 or model_best[i][19]<=2 or model_best[i][19]>=12 or abs(model_best[i][18]-model_best[i][19]) >= 3:
         indexes.append(i)
 
 model_best = np.delete(model_best, indexes, axis=0)
 model_best_df = pd.DataFrame(model_best, columns = columns)
-model_best_df.to_csv('model_best.csv')
+model_best_df.to_csv('\model_best_new.csv')
 
 #%%
 
 #add all figures generated for stim preference to a seperate folder
-for item in os.listdir('stimpref_figs'):
-    if f'{item[:-3]}npz' in np.array(model_best[['filename']])[:,0]:
-        newPath = shutil.copy(f'stimpref_figs\{item}', 'figs_select')
+for item in os.listdir('trials'):
+    if f'{item[:-13]}.npz' in np.array(model_best[['filename']])[:,0]:
+        newPath = shutil.copy(f'trials\{item}', 'trials_select')
 
 
 #%%
@@ -204,6 +226,7 @@ for item in os.listdir('weights'):
     
     Model.destruct()
     
+
 #%%
 
 #create structured np.array to produce a heat map for different variables 
@@ -245,6 +268,43 @@ ax[1,0].set_xticks([10, 20, 30, 40])
 ax[1,1].set_xticks([0,1,2])
 
 plt.tight_layout()
+
+#check relation between different parameters and if different associations are more likely
+#%%
+p_in = [0.1, 0.2, 0.5, 0.7, 1]
+p_rec = [0.0, 0.1, 0.2, 0.5, 0.7, 1]
+N_cal = [10, 20, 30, 40]
+
+x = model_best['seed']
+y =  model_best['N_cal']
+
+# list_x = {0.0:[0,0], 0.1:[0,1], 0.2:[1,2], 0.5:[2,3], 0.7:[3,4], 1.0:[4,5]}
+# other_x=[list_x[i][0] for i in x]
+
+cmap = sns.color_palette("viridis",  as_cmap=True )
+norm = colors.Normalize(vmin=model_best['fraction that prefer ipsi stim'].min(), vmax=model_best['fraction that prefer ipsi stim'].max())
+colours = {}
+for cval in model_best['fraction that prefer ipsi stim']:
+    colours.update({cval : cmap(norm(cval))})
+
+
+figure4, ax = plt.subplots(1,1, figsize=(6,6))
+ax = sns.swarmplot(x, y, size=10, hue=model_best['fraction that prefer ipsi stim'], palette=colours)
+
+plt.gca().legend_.remove()
+
+divider = make_axes_locatable(plt.gca())
+ax_cb = divider.new_horizontal(size="5%", pad=0.05)
+figure4.add_axes(ax_cb)
+cb1 = colorbar.ColorbarBase(ax_cb, cmap=cmap,
+                                norm=norm,
+                                orientation='vertical')
+
+
+
+
+#ax.set_xticks(p_in)
+#ax.set_yticks(N_cal)
 
 #%%
 
@@ -293,8 +353,6 @@ plt.show()
 
 mean_resp_all = np.array(np.mean(model_info[list(columns[9:13])], axis=1))
 mean_resp_best = np.array(np.mean(model_best[list(columns[9:13])], axis=1))
-
-from scipy.stats import gaussian_kde
 
 resp_all_dens = gaussian_kde(list(mean_resp_all))
 resp_best_dens = gaussian_kde(list(mean_resp_best))
