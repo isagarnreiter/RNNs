@@ -115,6 +115,18 @@ def gen_pol_trials(daleModel, pd):
         
     return trials
 
+def count_pref(array1, array2, indices=False):
+    list_of_indices = []
+    for i in range(1,len(array1)):
+        if array1[i] >= 0 and array1[i] > array2[i]:
+            list_of_indices.append(i)
+    n_pref = len(list_of_indices) 
+    if indices==True:
+        return list_of_indices
+    
+    else:
+        return n_pref
+
 
 def stim_pref(trials):
     stim_pref_dict = {}
@@ -123,3 +135,17 @@ def stim_pref(trials):
     stim_pref_dict['max_hem2stim'] = trials['hem2stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
 
     return stim_pref_dict
+
+def get_average(trials):
+    stim_pref_dict = stim_pref(trials)
+    n = [0,40,80]
+    hem = [1,2,1]
+    average_trajectory  = {}
+    
+    for i in range(2):
+        for j in range(2):
+            indices = count_pref(stim_pref_dict[f'max_hem{hem[j]}stim'][n[i]:n[i+1]], stim_pref_dict[f'max_hem{hem[j+1]}stim'][n[i]:n[i+1]], indices=True)
+            target = trials[f'hem{hem[j]}stim']['model_state'][:, n[i]:n[i+1]]
+            average_trajectory[f'hem{i+1}_hem{hem[j]}stim'] = np.mean(target[:, indices], axis=1)
+    
+    return average_trajectory

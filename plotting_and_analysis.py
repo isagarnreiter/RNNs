@@ -24,21 +24,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 %matplotlib inline
 
-def count_pref(array1, array2):
-    list_of_indices = []
-    for i in range(1,len(array1)):
-        if array1[i] <= 0:
-            list_of_indices.append(i)
-    array1 = np.delete(array1, list_of_indices)
-    array2 = np.delete(array2, list_of_indices)
-    
-    array3 = array1 - array2
-    array3 = array3[array3>0]
-    nb_pref = array3.size
-    
-    return nb_pref
-
-
 def take_first(elem):
     return elem[0]
 
@@ -68,8 +53,8 @@ model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
 
 for item in os.listdir('outputs2'):
     
-    dalemodel_test = dict(np.load(f'outputs2/{item}', allow_pickle=True))
-    stim_pref = dalemodel_test['stim_pref'].reshape(1)[0]    
+    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
+    stim_pref = dalemodel_test['arr_0'][0]['stim_pref'].reshape(1)[0]    
     loss = dalemodel_test['losses'][-1]    
     filename = item[0:-4]
     P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
@@ -92,8 +77,8 @@ for item in os.listdir('outputs2'):
     max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
     max_hem2_contra = np.max(stim_pref['max_hem2stim'][40:80])
     
-    nb_hem1_ipsi_pref = count_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40])
-    nb_hem2_ipsi_pref = count_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80])
+    nb_hem1_ipsi_pref = fcts.count_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40], indices=False)
+    nb_hem2_ipsi_pref = fcts.count_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80], indices=False)
     new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
                 'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
                 'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
@@ -115,14 +100,15 @@ for item in os.listdir('outputs2'):
     # ax1.set_xlabel('stim in hem 1')
     # ax1.set_ylabel('stim in hem 2')
     # figure.savefig(f'stimpref_figs/{item[0:-4]}')
-    
+ 
+
 hem1_contra_pref = np.array([])
 hem2_contra_pref = np.array([])
 for item in os.listdir('outputs'):
     dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
     stim_pref = dalemodel_test['arr_0'][0]['stim_pref'].reshape(1)[0] 
-    hem1_contra_pref = np.append(hem1_contra_pref, count_pref(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40]))
-    hem2_contra_pref = np.append(hem2_contra_pref, count_pref(stim_pref['max_hem2stim'][40:80], stim_pref['max_hem1stim'][40:80]))
+    hem1_contra_pref = np.append(hem1_contra_pref, fcts.count_pref(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], indices=False))
+    hem2_contra_pref = np.append(hem2_contra_pref, fcts.count_pref(stim_pref['max_hem2stim'][40:80], stim_pref['max_hem1stim'][40:80], indices=False))
     
 model_info['hem1_contra_pref'] = hem1_contra_pref
 model_info['hem2_contra_pref'] = hem2_contra_pref
@@ -144,14 +130,30 @@ for i in range(model_best.shape[0]):
 
 model_best = np.delete(model_best, indexes, axis=0)
 model_best_df = pd.DataFrame(model_best, columns = columns)
-model_best_df.to_csv('\model_best_new.csv')
+
+
+#drop models with some kind of problem
+exclusions = np.array(['IpsiContra_In05_Rec02_Col10_s2',
+              'IpsiContra_In02_Rec07_Col40_s2',
+              'IpsiContra_In02_Rec10_Col10_s2',
+              'IpsiContra_In07_Rec07_Col10_s2',
+              'IpsiContra_In10_Rec10_Col20_s1',
+              'IpsiContra_In07_Rec01_Col20_s1'])
+
+index=[]
+for i in range(len(model_best['filename'])):
+    if model_best['filename'][i][:-4] in exclusions:
+        index.append(i)
+model_best = model_best.drop(index)
+
+model_best_df.to_csv('\model_best.csv')
 
 #%%
 
 #add all figures generated for stim preference to a seperate folder
-for item in os.listdir('trials'):
+for item in os.listdir('/UserFolder/neur0003/trials'):
     if f'{item[:-13]}.npz' in np.array(model_best[['filename']])[:,0]:
-        newPath = shutil.copy(f'trials\{item}', 'trials_select')
+        newPath = shutil.copy(f'/UserFolder/neur0003/trials/{item}', '/UserFolder/neur0003/trials_select')
 
 
 #%%
@@ -197,7 +199,7 @@ for item in os.listdir('weights'):
     
         for i in range(len(trials[l]['mask'])):
             if trials[l]['mask'][i][0] == 0:
-                trials[l]['y'][i][0] =+ np.nan
+                trials[l]['y'][i] =+ np.nan
         
         x_len = range(0,len(trials[l]['x'])*dt,dt)
         data = {'H1':trials[l]['model_state'][:,0:40], 'H2':trials[l]['model_state'][:,40:80]}
@@ -271,12 +273,12 @@ plt.tight_layout()
 
 #check relation between different parameters and if different associations are more likely
 #%%
-p_in = [0.1, 0.2, 0.5, 0.7, 1]
-p_rec = [0.0, 0.1, 0.2, 0.5, 0.7, 1]
+P_in = [0.1, 0.2, 0.5, 0.7, 1]
+P_rec = [0.0, 0.1, 0.2, 0.5, 0.7, 1]
 N_cal = [10, 20, 30, 40]
 
-x = model_best['seed']
-y =  model_best['N_cal']
+x = model_best['P_rec']
+y =  model_best['fraction that prefer ipsi stim']
 
 # list_x = {0.0:[0,0], 0.1:[0,1], 0.2:[1,2], 0.5:[2,3], 0.7:[3,4], 1.0:[4,5]}
 # other_x=[list_x[i][0] for i in x]
