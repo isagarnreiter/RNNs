@@ -16,11 +16,10 @@ import pandas as pd
 import shutil
 import csv
 import fcts
+from fcts import count_pref
 import seaborn as sns
 from pylab import text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-
 
 %matplotlib inline
 
@@ -41,27 +40,27 @@ def take_fourth(elem):
 
 model_best = pd.read_csv('model_best.csv', index_col='Unnamed: 0')
 model_info = pd.read_csv('model_info.csv', index_col='Unnamed: 0')
+second_set = pd.read_csv('/UserFolder/neur0003/second_set_model.csv', index_col='Unnamed: 0')
 
 #%% 
 #produce dataframe of with info about all models
 
-# model_info = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
-#                                      'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
-#                                      'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
-#                                      'max_hem1_ipsi', 'max_hem1_contra', 'max_hem2_ipsi', 'max_hem2_contra',
-#                                      'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref'])
+first_set = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
+                                      'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
+                                      'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
+                                      'max_hem1_ipsi', 'max_hem1_contra', 'max_hem2_ipsi', 'max_hem2_contra',
+                                      'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref', 'nb_hem1_contra_pref', 'nb_hem2_contra_pref',
+                                      'total_active', 'fraction_ipsi_pref'])
 
-for item in os.listdir('outputs2'):
+for item in os.listdir('/UserFolder/neur0003/first_set_models'):
     
-    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
-    stim_pref = dalemodel_test['arr_0'][0]['stim_pref'].reshape(1)[0]    
-    loss = dalemodel_test['losses'][-1]    
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/first_set_models/{item}', allow_pickle=True))
+    trials = dalemodel_test['arr_0'][1]['trials'].reshape(1)[0]
+    stim_pref = fcts.stim_pref(trials)    
+    loss = dalemodel_test['arr_0'][1]['losses'][-1]
+    params = dalemodel_test['params'].reshape(1)[0]    
     filename = item[0:-4]
-    P_in = round(float(item[13]),2) + round(float(item[14])*(.1), 2)
-    P_rec = round(float(item[19]),2) + round(float(item[20])*(.1), 2)
-    N_cal = int(item[25:27])
-    seed = int(item[29])
-    
+
     mean_hem1_ipsi = np.mean(stim_pref['max_hem2stim'][0:40])
     mean_hem1_contra = np.mean(stim_pref['max_hem1stim'][0:40])
     mean_hem2_ipsi = np.mean(stim_pref['max_hem1stim'][40:80])
@@ -72,20 +71,24 @@ for item in os.listdir('outputs2'):
     var_hem2_ipsi = np.std(stim_pref['max_hem1stim'][40:80])
     var_hem2_contra = np.std(stim_pref['max_hem2stim'][40:80])
     
-    max_hem1_ipsi = np.max(stim_pref['max_hem2stim'][0:40])
-    max_hem1_contra = np.max(stim_pref['max_hem1stim'][0:40])
-    max_hem2_ipsi = np.max(stim_pref['max_hem1stim'][40:80])
-    max_hem2_contra = np.max(stim_pref['max_hem2stim'][40:80])
     
-    nb_hem1_ipsi_pref = fcts.count_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40], indices=False)
-    nb_hem2_ipsi_pref = fcts.count_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80], indices=False)
-    new_row = {'filename':item, 'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_cal, 'seed':seed, 'loss': loss,
+    nb_hem1_ipsi_pref = count_pref(stim_pref['max_hem2stim'][0:40], stim_pref['max_hem1stim'][0:40], indices=False)
+    nb_hem2_ipsi_pref = count_pref(stim_pref['max_hem1stim'][40:80], stim_pref['max_hem2stim'][40:80], indices=False)
+    nb_hem1_contra_pref = count_pref(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], indices=False)
+    nb_hem2_contra_pref = count_pref(stim_pref['max_hem2stim'][40:80], stim_pref['max_hem1stim'][40:80], indices=False)
+
+    total_active = nb_hem1_ipsi_pref + nb_hem2_ipsi_pref + nb_hem1_contra_pref + nb_hem2_contra_pref
+    fraction_ipsi_pref = (nb_hem1_ipsi_pref+nb_hem2_ipsi_pref)/total_active
+    
+    new_row = {'filename':item, 'P_in':params['P_in'], 'P_rec':params['P_rec'], 'N_cal':params['N_cal'], 'seed':params['seed'], 'loss': loss,
                 'mean_hem1_ipsi':mean_hem1_ipsi, 'mean_hem1_contra':mean_hem1_contra, 'mean_hem2_ipsi':mean_hem2_ipsi, 'mean_hem2_contra':mean_hem2_contra,
                 'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
                 'max_hem1_ipsi':max_hem1_ipsi, 'max_hem1_contra':max_hem1_contra, 'max_hem2_ipsi':max_hem2_ipsi, 'max_hem2_contra':max_hem2_contra,
-                'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref}
+                'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref, 'nb_hem1_contra_pref':nb_hem1_contra_pref, 'nb_hem2_contra_pref':nb_hem2_contra_pref, 
+                'total_active':total_active, 'fraction_ipsi_pref':fraction_ipsi_pref}
     
-    model_info = model_info.append(new_row, ignore_index = True)
+    first_set = first_set.append(new_row, ignore_index = True)
+    
     # figure = plt.figure(figsize=(6,6))
     # ax1 = plt.subplot(111)
     # ax1.scatter(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], c = 'coral', label = 'hemisphere 1', alpha=0.6)
@@ -99,54 +102,44 @@ for item in os.listdir('outputs2'):
     # ax1.legend()
     # ax1.set_xlabel('stim in hem 1')
     # ax1.set_ylabel('stim in hem 2')
-    # figure.savefig(f'stimpref_figs/{item[0:-4]}')
+    # figure.savefig(f'/UserFolder/neur0003/stim_pref_second_set/{item[0:-4]}')
  
 
-hem1_contra_pref = np.array([])
-hem2_contra_pref = np.array([])
-for item in os.listdir('outputs'):
-    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
-    stim_pref = dalemodel_test['arr_0'][0]['stim_pref'].reshape(1)[0] 
-    hem1_contra_pref = np.append(hem1_contra_pref, fcts.count_pref(stim_pref['max_hem1stim'][0:40], stim_pref['max_hem2stim'][0:40], indices=False))
-    hem2_contra_pref = np.append(hem2_contra_pref, fcts.count_pref(stim_pref['max_hem2stim'][40:80], stim_pref['max_hem1stim'][40:80], indices=False))
-    
-model_info['hem1_contra_pref'] = hem1_contra_pref
-model_info['hem2_contra_pref'] = hem2_contra_pref
-model_info['total_active_hem1'] = model_info['hem1_contra_pref'] + model_info['nb_hem1_ipsi_pref']
-model_info['total_active_hem2'] = model_info['hem2_contra_pref'] + model_info['nb_hem2_ipsi_pref']
-
-model_info.to_csv('model_info.csv')
+first_set.to_csv('/UserFolder/neur0003/first_set_model.csv')
 
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
 
-model_best = model_info[model_info.columns[:]].to_numpy()
-columns = model_info.columns[:]
+model_best = second_set[model_best.columns[:]].to_numpy()
+columns = second_set.columns[:]
 
 indexes=[]
-for i in range(model_best.shape[0]):
-    if model_best[i][18]<=1 or model_best[i][18]>=12 or model_best[i][19]<=2 or model_best[i][19]>=12 or abs(model_best[i][18]-model_best[i][19]) >= 3:
+for i in range(second_set_best.shape[0]):
+    if model_best[i][18]==0 or model_best[i][19]==0 or abs(model_best[i][18]-model_best[i][19]) > 5:
         indexes.append(i)
-
-model_best = np.delete(model_best, indexes, axis=0)
-model_best_df = pd.DataFrame(model_best, columns = columns)
+    elif abs(model_best[i][20]-model_best[i][21]) > 5:
+        indexes.append(i)
+    elif model_best[i][23] > 0.4:
+        indexes.append(i)
+model_best = np.delete(second_set_best, indexes, axis=0)
+second_set_best_df = pd.DataFrame(second_set_best, columns = columns)
 
 
 #drop models with some kind of problem
-exclusions = np.array(['IpsiContra_In05_Rec02_Col10_s2',
-              'IpsiContra_In02_Rec07_Col40_s2',
-              'IpsiContra_In02_Rec10_Col10_s2',
-              'IpsiContra_In07_Rec07_Col10_s2',
-              'IpsiContra_In10_Rec10_Col20_s1',
-              'IpsiContra_In07_Rec01_Col20_s1'])
+# exclusions = np.array(['IpsiContra_In05_Rec02_Col10_s2',
+#               'IpsiContra_In02_Rec07_Col40_s2',
+#               'IpsiContra_In02_Rec10_Col10_s2',
+#               'IpsiContra_In07_Rec07_Col10_s2',
+#               'IpsiContra_In10_Rec10_Col20_s1',
+#               'IpsiContra_In07_Rec01_Col20_s1'])
 
-index=[]
-for i in range(len(model_best['filename'])):
-    if model_best['filename'][i][:-4] in exclusions:
-        index.append(i)
-model_best = model_best.drop(index)
+# index=[]
+# for i in range(len(model_best['filename'])):
+#     if model_best['filename'][i][:-4] in exclusions:
+#         index.append(i)
+# model_best = model_best.drop(index)
 
-model_best_df.to_csv('\model_best.csv')
+second_set_best_df.to_csv('UserFolder/neur0003/second_set_best_df.csv')
 
 #%%
 
@@ -165,35 +158,15 @@ for item in os.listdir('outputs'):
 
 #%%
 
-#test network on test batch
-
-task = PerceptualDiscrimination(dt = 10, # The simulation timestep
-                              tau = 100, # The intrinsic time constant of neural state decay.
-                              T = 2500, # The trial length, 
-                              N_batch = 50) # Initialize the task object
-
-network_params = task.get_task_params() # get the params passed in and defined in pd
-network_params['N_rec'] = 100 # set the number of recurrent units in the model
-network_params['name'] = 'model'
-network_params['N_in'] = 3
-network_params['N_out'] = 2
-
 dt = 10
 results = ['x', 'y', 'model_state', 'model_output']
 labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
 lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
 
-for item in os.listdir('weights'):
-        
-    network_params['load_weights_path'] = f'weights/{item}'
-    Model = Basic(network_params)
-    trials = fcts.gen_pol_trials(Model, task)
+for item in os.listdir('UserFolder/neur0003/second_set_models'):
     
-    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
-    dalemodel_test = np.append(dalemodel_test, trials)
-    
-    np.savez(f'outputs/{item[0:-4]}', dalemodel_test)
-    
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/second_set_models/{item}', allow_pickle=True))
+    trials = dalemodel_test['trials'].reshape(1)[0]
     for l in list(trials.keys()):
     #make a figure of the trials
     
@@ -224,9 +197,7 @@ for item in os.listdir('weights'):
         ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
         
         fig2.tight_layout()
-        fig2.savefig(f'trials/{item[0:-4]}_{l}')
-    
-    Model.destruct()
+        fig2.savefig(f'UserFolder/neur0003/trials_second_set/{item[0:-4]}_{l}')
     
 
 #%%
@@ -277,21 +248,21 @@ P_in = [0.1, 0.2, 0.5, 0.7, 1]
 P_rec = [0.0, 0.1, 0.2, 0.5, 0.7, 1]
 N_cal = [10, 20, 30, 40]
 
-x = model_best['P_rec']
-y =  model_best['fraction that prefer ipsi stim']
-
+x = second_set['P_rec']
+y =  second_set['total_active']
+c = second_set['fraction_ipsi_pref']
 # list_x = {0.0:[0,0], 0.1:[0,1], 0.2:[1,2], 0.5:[2,3], 0.7:[3,4], 1.0:[4,5]}
 # other_x=[list_x[i][0] for i in x]
 
 cmap = sns.color_palette("viridis",  as_cmap=True )
-norm = colors.Normalize(vmin=model_best['fraction that prefer ipsi stim'].min(), vmax=model_best['fraction that prefer ipsi stim'].max())
+norm = colors.Normalize(vmin=c.min(), vmax=c.max())
 colours = {}
-for cval in model_best['fraction that prefer ipsi stim']:
+for cval in c:
     colours.update({cval : cmap(norm(cval))})
 
 
 figure4, ax = plt.subplots(1,1, figsize=(6,6))
-ax = sns.swarmplot(x, y, size=10, hue=model_best['fraction that prefer ipsi stim'], palette=colours)
+ax = sns.swarmplot(x, y, size=10, hue=c, palette=colours)
 
 plt.gca().legend_.remove()
 
