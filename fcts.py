@@ -131,8 +131,8 @@ def count_pref(array1, array2, indices=False):
 def stim_pref(trials):
     stim_pref_dict = {}
     
-    stim_pref_dict['max_hem1stim'] = trials['hem1stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
-    stim_pref_dict['max_hem2stim'] = trials['hem2stim']['model_state'][50,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+    stim_pref_dict['max_hem1stim'] = trials['hem1stim']['model_state'][50,:]-trials['hem1stim']['model_state'][0,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
+    stim_pref_dict['max_hem2stim'] = trials['hem2stim']['model_state'][50,:]-trials['hem2stim']['model_state'][0,:] #save the state of excitatory neurons right after stimulus fore either a stim to hemi 1 or 2
 
     return stim_pref_dict
 
