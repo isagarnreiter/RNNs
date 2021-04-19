@@ -11,7 +11,7 @@ from psychrnn.backend.models.basic import Basic
 import numpy as np
 from scipy.stats import lognorm, norm, gaussian_kde
 import os
-from matplotlib import cm, colors, colorbar
+from matplotlib import cm, colors, colorbar, markers
 import pandas as pd
 import shutil
 import csv
@@ -53,19 +53,24 @@ first_set = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed'
                                       'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
                                       'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
                                       'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref', 'nb_hem1_contra_pref', 'nb_hem2_contra_pref',
-                                      'total_active', 'fraction_ipsi_pref', 'stim_pref_hem1stim', 'stim_pref_hem2stim'])
+                                      'total_active', 'fraction_ipsi_pref', 
+                                      'stim_pref_hem1stim_hem1', 'stim_pref_hem1stim_hem2', 'stim_pref_hem2stim_hem2', 'stim_pref_hem2stim_hem1'])
 
 for item in os.listdir('/UserFolder/neur0003/first_set_models'):
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/first_set_models/{item}', allow_pickle=True))
     trials = dalemodel_test['arr_0'][1]
-    stim_pref = fcts.stim_pref(trials)    
-    stim_pref_hem1stim = sorted(stim_pref['max_hem1stim'][0:80])
-    stim_pref_hem2stim = sorted(stim_pref['max_hem2stim'][0:80])
+    stim_pref = stim_pref_(trials)  
+    
+    stim_pref_hem1stim_hem1 = sorted(stim_pref['max_hem1stim'][0:40])
+    stim_pref_hem1stim_hem2 = sorted(stim_pref['max_hem1stim'][40:80])
+    stim_pref_hem2stim_hem2 = sorted(stim_pref['max_hem2stim'][40:80])
+    stim_pref_hem2stim_hem1 = sorted(stim_pref['max_hem2stim'][0:40])
+    
     loss = dalemodel_test['arr_0'][0]['losses'][-1]
-    #params = dalemodel_test['params'].reshape(1)[0]    
     filename = item[0:-4]
     
+    #params = dalemodel_test['params'].reshape(1)[0]  
     params_conv = {0.0:0.08, 0.1:0.1, 0.2:0.25, 0.5:0.5, 0.7:0.75, 1.0:1.0}
     P_in = params_conv[round(float(item[13]),2) + round(float(item[14])*(.1), 2)]
     P_rec = params_conv[round(float(item[19]),2) + round(float(item[20])*(.1), 2)]
@@ -95,7 +100,7 @@ for item in os.listdir('/UserFolder/neur0003/first_set_models'):
                 'var_hem1_ipsi':var_hem1_ipsi, 'var_hem1_contra':var_hem1_contra, 'var_hem2_ipsi':var_hem2_ipsi, 'var_hem2_contra':var_hem2_contra,
                 'nb_hem1_ipsi_pref':nb_hem1_ipsi_pref, 'nb_hem2_ipsi_pref':nb_hem2_ipsi_pref, 'nb_hem1_contra_pref':nb_hem1_contra_pref, 'nb_hem2_contra_pref':nb_hem2_contra_pref, 
                 'total_active':total_active, 'fraction_ipsi_pref':fraction_ipsi_pref, 
-                'stim_pref_hem1stim':stim_pref_hem1stim, 'stim_pref_hem2stim':stim_pref_hem2stim}
+                'stim_pref_hem1stim_hem1':stim_pref_hem1stim_hem1, 'stim_pref_hem1stim_hem2':stim_pref_hem1stim_hem2, 'stim_pref_hem2stim_hem2':stim_pref_hem2stim_hem2, 'stim_pref_hem2stim_hem1':stim_pref_hem2stim_hem1}
     
     first_set = first_set.append(new_row, ignore_index = True)
     
@@ -115,8 +120,6 @@ for item in os.listdir('/UserFolder/neur0003/first_set_models'):
     # figure.savefig(f'/UserFolder/neur0003/stim_pref_second_set/{item[0:-4]}')
 
 first_set.to_pickle('/UserFolder/neur0003/first_set_model.pkl')
-
-#first_set.to_csv('/UserFolder/neur0003/first_set_model.csv')
 
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
@@ -242,31 +245,40 @@ labels = ['P_in', 'P_rec', 'N_cal', 'seed']
 
 for i in [0,1]:
     for j in [0,1]:        
-        ax[i,j].hist(model_best[[labels[x]]])
+        ax[i,j].hist(first_set[[labels[x]]])
         ax[i,j].set_xlabel(labels[x])
         x=x+1
         
-ax[0,0].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
-ax[0,1].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
-ax[1,0].set_xticks([10, 20, 30, 40])
-ax[1,1].set_xticks([0,1,2])
+# ax[0,0].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
+# ax[0,1].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
+# ax[1,0].set_xticks([10, 20, 30, 40])
+# ax[1,1].set_xticks([0,1,2])
 
 plt.tight_layout()
 
 #check relation between different parameters and if different associations are more likely
 #%%
-mean_resp = np.mean(file[list(columns[6:10])], axis=1)
-var_resp = np.mean(file[list(columns[10:14])], axis=1)
-P_in_rec = file[columns[1]]*file[columns[2]]
-diff_ipsi = np.abs(file[columns[20]]-file[columns[21]])
 
 file = first_set
 title = 'fraction of ipsi-preferring cells as a function of N_cal'
 
-x = file['seed']
-y = file['total_active']
-c = file['P_rec']
+columns = file.columns[1:]
+mean_resp = np.mean(file[list(columns[6:10])], axis=1)
+var_resp = np.mean(file[list(columns[10:14])], axis=1)
+P_in_rec = file[columns[1]]*file[columns[2]]
+# diff_ipsi = np.abs(file[columns[20]]-file[columns[21]])
 
+x = file['P_rec']
+y = file['P_in']
+c = file['fraction_ipsi_pref']
+
+if x == file['P_rec']:
+    
+
+rx, ry = 1., 10.
+area = rx * ry * np.pi
+theta = np.arange(0, 2 * np.pi + 0.02, 0.1)
+verts = np.column_stack([rx / area * np.cos(theta), ry / area * np.sin(theta)])
 
 cmap = sns.color_palette("viridis",  as_cmap=True )
 norm = colors.Normalize(vmin=c.min(), vmax=c.max())
@@ -277,11 +289,11 @@ for cval in c:
 
 figure4, ax = plt.subplots(1,1, figsize=(6,6))
 figure4.suptitle(title)
-#ax = sns.swarmplot(x, y, size=5, hue=c, palette=colours)
-ax = sns.boxplot(x, y)
-
+ax = sns.swarmplot(x, y, hue=c, palette=colours, size = 40,marker=verts)
+#ax = sns.boxplot(x, y)
+#
 plt.gca().legend_.remove()
-
+#marker=np.array([0.02, 0.1]*292).reshape(292,2)
 divider = make_axes_locatable(plt.gca())
 ax_cb = divider.new_horizontal(size="5%", pad=0.05)
 figure4.add_axes(ax_cb)
@@ -370,15 +382,24 @@ ax2.set_xticklabels([0.2, 0.5, 0.7, 1])
 ax2.set_xlabel('P(rec)')
 
 #%%
+col = 'stim_pref_hem2stim_hem2'
 
-indices = []
-for i in range(len(first_set['P_in'])):
-    if first_set['P_rec'][i] == 0.25 :
-        indices.append(i)
+indices = {0.08:[], 0.10:[], 0.25:[], 0.50:[], 0.75:[], 1.0:[]}
+n_cals = {10:[], 20:[], 30:[], 40:[]}
+for i in range(len(first_set['P_rec'])):
+        indices[first_set['P_in'][i]].append(i)
+        n_cals[first_set['N_cal'][i]].append(i)
+        
+x = np.linspace(1, len(first_set[col][0]), len(first_set[col][0]))
+for j in list(n_cals.keys())[:]:
+    a = np.array(first_set[col][n_cals[j]].values.tolist())
+    mean_resp_ord = np.mean(a, axis=0)
+    sem = np.std(a, axis=0, ddof=1)/np.sqrt(np.size(a))
+    plt.plot(x, mean_resp_ord,label = j)
+    
+plt.hlines(0, 0, len(first_set[col][0]), colors='grey', linestyles='--', alpha=0.8)
+plt.legend()
 
-mean_resp_ord = np.mean(np.array(first_set['stim_pref_hem1stim'][indices].values.tolist()), axis=0)
-
-plt.plot(mean_resp_ord)
 #%%
 # ---------------------- Save and plot the weights of the network ---------------------------
 
@@ -445,3 +466,23 @@ y = norm.pdf(x,lmean,lstd)
 
 plt.hist(log_weights, bins=50, alpha = 0.75, density=True)
 plt.plot(x,y, 'k', color='coral')
+
+#%%
+
+
+# Fixing random state for reproducibility
+np.random.seed(19680801)
+
+# unit area ellipse
+rx, ry = 3., 1.
+area = rx * ry * np.pi
+theta = np.arange(0, 2 * np.pi + 0.02, 0.1)
+verts = np.column_stack([rx / area * np.cos(theta), ry / area * np.sin(theta)])
+
+x, y, s, c = np.random.rand(4, 30)
+s *= 10**2.
+
+fig, ax = plt.subplots()
+ax.scatter(x, y, s, c, marker=np.array([0.3,0.1],))
+
+plt.show()
