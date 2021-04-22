@@ -5,7 +5,8 @@ Created on Mon Mar 22 21:13:02 2021
 @author: Isabelle
 """
 
-from oli_task import PerceptualDiscrimination
+import oli_task
+import oli_task_perturb
 from matplotlib import pyplot as plt
 from psychrnn.backend.models.basic import Basic
 import numpy as np
@@ -49,33 +50,33 @@ model_best1 = pd.read_csv('/UserFolder/neur0003/first_set_best.csv', index_col='
 #%% 
 #produce dataframe of with info about all models
 
-first_set = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
+third_set = pd.DataFrame(columns = ['filename', 'P_in', 'P_rec', 'N_cal', 'seed', 'loss',
                                       'mean_hem1_ipsi', 'mean_hem1_contra', 'mean_hem2_ipsi', 'mean_hem2_contra',
                                       'var_hem1_ipsi', 'var_hem1_contra', 'var_hem2_ipsi', 'var_hem2_contra',
                                       'nb_hem1_ipsi_pref', 'nb_hem2_ipsi_pref', 'nb_hem1_contra_pref', 'nb_hem2_contra_pref',
                                       'total_active', 'fraction_ipsi_pref', 
                                       'stim_pref_hem1stim_hem1', 'stim_pref_hem1stim_hem2', 'stim_pref_hem2stim_hem2', 'stim_pref_hem2stim_hem1'])
 
-for item in os.listdir('/UserFolder/neur0003/first_set_models'):
+for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     
-    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/first_set_models/{item}', allow_pickle=True))
-    trials = dalemodel_test['arr_0'][1]
-    stim_pref = stim_pref_(trials)  
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
+    trials = dalemodel_test['trials'].reshape(-1)[0]
+    stim_pref = fcts.stim_pref_(trials)
     
     stim_pref_hem1stim_hem1 = sorted(stim_pref['max_hem1stim'][0:40])
     stim_pref_hem1stim_hem2 = sorted(stim_pref['max_hem1stim'][40:80])
     stim_pref_hem2stim_hem2 = sorted(stim_pref['max_hem2stim'][40:80])
     stim_pref_hem2stim_hem1 = sorted(stim_pref['max_hem2stim'][0:40])
     
-    loss = dalemodel_test['arr_0'][0]['losses'][-1]
+    loss = dalemodel_test['losses'][-1]
     filename = item[0:-4]
     
-    #params = dalemodel_test['params'].reshape(1)[0]  
+    params = dalemodel_test['params'].reshape(1)[0]  
     params_conv = {0.0:0.08, 0.1:0.1, 0.2:0.25, 0.5:0.5, 0.7:0.75, 1.0:1.0}
-    P_in = params_conv[round(float(item[13]),2) + round(float(item[14])*(.1), 2)]
-    P_rec = params_conv[round(float(item[19]),2) + round(float(item[20])*(.1), 2)]
-    N_cal = int(item[25:27])
-    seed = int(item[29])
+    P_in = params['P_in']
+    P_rec = params['P_rec']
+    N_cal = params['N_cal']
+    seed = params['seed']
 
     mean_hem1_ipsi = np.mean(stim_pref['max_hem2stim'][0:40])
     mean_hem1_contra = np.mean(stim_pref['max_hem1stim'][0:40])
@@ -102,7 +103,7 @@ for item in os.listdir('/UserFolder/neur0003/first_set_models'):
                 'total_active':total_active, 'fraction_ipsi_pref':fraction_ipsi_pref, 
                 'stim_pref_hem1stim_hem1':stim_pref_hem1stim_hem1, 'stim_pref_hem1stim_hem2':stim_pref_hem1stim_hem2, 'stim_pref_hem2stim_hem2':stim_pref_hem2stim_hem2, 'stim_pref_hem2stim_hem1':stim_pref_hem2stim_hem1}
     
-    first_set = first_set.append(new_row, ignore_index = True)
+    third_set = third_set.append(new_row, ignore_index = True)
     
     # figure = plt.figure(figsize=(6,6))
     # ax1 = plt.subplot(111)
@@ -119,7 +120,7 @@ for item in os.listdir('/UserFolder/neur0003/first_set_models'):
     # ax1.set_ylabel('stim in hem 2')
     # figure.savefig(f'/UserFolder/neur0003/stim_pref_second_set/{item[0:-4]}')
 
-first_set.to_pickle('/UserFolder/neur0003/first_set_model.pkl')
+third_set.to_pickle('/UserFolder/neur0003/third_set_model.pkl')
 
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
@@ -162,15 +163,8 @@ for item in os.listdir('/UserFolder/neur0003/trials'):
     if f'{item[:-13]}.npz' in np.array(model_best[['filename']])[:,0]:
         newPath = shutil.copy(f'/UserFolder/neur0003/trials/{item}', '/UserFolder/neur0003/trials_select')
 
-
 #%%
-#save weights
-for item in os.listdir('outputs'):
-    dalemodel_test = dict(np.load(f'outputs/{item}', allow_pickle=True))
-    weights = dalemodel_test['weights'].reshape(1)[0]
-    np.savez(f'weights\{item}', **weights)
-
-#%%
+#Save trials
 
 dt = 10
 results = ['x', 'y', 'model_state', 'model_output']
@@ -217,12 +211,11 @@ for item in os.listdir('UserFolder/neur0003/second_set_models'):
 #%%
 
 #create structured np.array to produce a heat map for different variables 
-
-arr_info = model_info[model_info.columns[1:]].to_numpy()
-columns = model_info.columns[1:]
+columns = first_set.columns[1:]
+arr_info = first_set[columns].to_numpy()
 
 file = np.array(sorted(arr_info, key=take_first))
-file = file.reshape(4, 48, len(columns))
+file = file.reshape(5, int(file.shape[0]/5) , len(columns))
 for i in range(4):
     file[i] = np.array(sorted(file[i], key=take_second))
 file = file.reshape(4, 4, 12, len(columns))
@@ -258,9 +251,30 @@ plt.tight_layout()
 
 #check relation between different parameters and if different associations are more likely
 #%%
+#make average fraction of ipsi preferring cells depending on P_rec and P_in
+
+P_rec = [0.08, 0.1, 0.25, 0.5, 0.75, 1.0]
+P_in = [0.1, 0.25, 0.5, 0.75, 1.0]
+av_fraction = np.array([])
+for i in P_rec:
+    for j in P_in:
+        index = []
+        for k in range(len(first_set['P_rec'])):
+            if first_set['P_rec'][k] == i and first_set['P_in'][k] == j:
+                index.append(k)
+        frac = np.mean(first_set['fraction_ipsi_pref'][index])
+        active = np.mean(first_set['total_active'][index])
+        av_fraction = np.append(av_fraction, [i, j, frac, active])
+av_fraction = av_fraction.reshape(30, 4)
+
+
+av_fraction[:,0] = np.where(av_fraction[:,0]!=0.08, av_fraction[:,0],-0.25)
+av_fraction[:,0] = np.where(av_fraction[:,0]!=0.1, av_fraction[:,0],0)
+av_fraction[:,1]= np.where(av_fraction[:,1]!=0.1, av_fraction[:,1],0)
+
 
 file = first_set
-title = 'fraction of ipsi-preferring cells as a function of N_cal'
+title = 'fraction of ipsi-preferrinf cells in models, categorised by P_in and P_rec'
 
 columns = file.columns[1:]
 mean_resp = np.mean(file[list(columns[6:10])], axis=1)
@@ -268,47 +282,41 @@ var_resp = np.mean(file[list(columns[10:14])], axis=1)
 P_in_rec = file[columns[1]]*file[columns[2]]
 # diff_ipsi = np.abs(file[columns[20]]-file[columns[21]])
 
-x = file['P_rec']
-y = file['P_in']
+x = np.array(file['P_rec'])
+y = np.array(file['P_in'])
 c = file['fraction_ipsi_pref']
 
-if x == file['P_rec']:
-    
+x = np.where(x!=0.08, x,-0.25)
+x = np.where(x!=0.1, x,0)
+y= np.where(y!=0.1, y,0)
 
-rx, ry = 1., 10.
-area = rx * ry * np.pi
-theta = np.arange(0, 2 * np.pi + 0.02, 0.1)
-verts = np.column_stack([rx / area * np.cos(theta), ry / area * np.sin(theta)])
+np.random.seed(1)
+x= x+np.random.uniform(-0.05, 0.05, len(x))
+y=y+np.random.uniform(-0.05,0.05, len(y))
 
-cmap = sns.color_palette("viridis",  as_cmap=True )
+
 norm = colors.Normalize(vmin=c.min(), vmax=c.max())
-colours = {}
-for cval in c:
-    colours.update({cval : cmap(norm(cval))})
-
+cmap = colors.Colormap('rainbow')
 
 figure4, ax = plt.subplots(1,1, figsize=(6,6))
 figure4.suptitle(title)
-ax = sns.swarmplot(x, y, hue=c, palette=colours, size = 40,marker=verts)
-#ax = sns.boxplot(x, y)
-#
-plt.gca().legend_.remove()
-#marker=np.array([0.02, 0.1]*292).reshape(292,2)
+ax.scatter(av_fraction[:,0], av_fraction[:,1], c=av_fraction[:,2], s=1000, norm=norm, alpha=0.8)
+ax.scatter(x, y, c=c, s=30, alpha=0.9, norm=norm)
+
+ax.set_yticks([0, .25,.5, .75,1.])
+ax.set_xticks([-0.25, 0., .25,.5, .75,1.])
+ax.set_yticklabels([0.1, 0.25, 0.5, 0.75, 1.0])
+ax.set_xticklabels([0.08, 0.1, 0.25, 0.5, 0.75, 1.0])
+ax.set_xlabel('P_rec')
+ax.set_ylabel('P_in')
+
 divider = make_axes_locatable(plt.gca())
 ax_cb = divider.new_horizontal(size="5%", pad=0.05)
 figure4.add_axes(ax_cb)
-cb1 = colorbar.ColorbarBase(ax_cb, cmap=cmap,
-                                norm=norm,
-                                orientation='vertical', label='total active')
+cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label=c.name)
 
-
-
-
-#ax.set_xticks(p_in)
-#ax.set_yticks(N_cal)
 
 #%%
-
 N = 4
 
 fig, axs = plt.subplots(N, N, figsize=(4,6))
@@ -370,34 +378,30 @@ ax.legend()
 plt.show()
 
 #%%
-
-axes =plt.figure(figsize = (4,6))
-ax2 = axes.add_axes([0.05,0.25,0.9,0.65])
-ax2.set_ylim(1,0)
-ax2.set_yticks([0.15, 0.4,0.65,0.9])
-ax2.set_yticklabels([0.2,0.5,0.7,1])
-ax2.set_ylabel('P(in)')
-ax2.set_xticks([0.15, 0.4, 0.65, 0.9])
-ax2.set_xticklabels([0.2, 0.5, 0.7, 1])
-ax2.set_xlabel('P(rec)')
-
-#%%
-col = 'stim_pref_hem2stim_hem2'
+col = {'contra':['stim_pref_hem2stim_hem2', 'stim_pref_hem2stim_hem2'], 'ipsi':['stim_pref_hem1stim_hem2', 'stim_pref_hem2stim_hem1']}
+n= 40
 
 indices = {0.08:[], 0.10:[], 0.25:[], 0.50:[], 0.75:[], 1.0:[]}
 n_cals = {10:[], 20:[], 30:[], 40:[]}
 for i in range(len(first_set['P_rec'])):
-        indices[first_set['P_in'][i]].append(i)
+    if first_set['P_rec'][i] == 0.25:
+        indices[first_set['P_rec'][i]].append(i)
         n_cals[first_set['N_cal'][i]].append(i)
-        
-x = np.linspace(1, len(first_set[col][0]), len(first_set[col][0]))
-for j in list(n_cals.keys())[:]:
-    a = np.array(first_set[col][n_cals[j]].values.tolist())
-    mean_resp_ord = np.mean(a, axis=0)
-    sem = np.std(a, axis=0, ddof=1)/np.sqrt(np.size(a))
-    plt.plot(x, mean_resp_ord,label = j)
+
+figure, ax = plt.subplots(1,1)
+figure.suptitle('distribution of activity for a stimulus as a function of P_rec')
+x = np.linspace(1, n, n)
+for j in list(n_cals.keys()):
+    for i in [list(col.keys())[0]]:   
+        a = np.array(first_set[col[i]].values.tolist())[n_cals[j]]
+        a = np.mean(a, axis=0)
+        mean_resp_ord = np.mean(a, axis=0)
+        sem = np.std(a, axis=0, ddof=1)/np.sqrt(np.size(a))
+        ax.plot(x, mean_resp_ord,label = j)
     
-plt.hlines(0, 0, len(first_set[col][0]), colors='grey', linestyles='--', alpha=0.8)
+ax.hlines(0, 0, n, colors='grey', linestyles='--', alpha=0.8)
+ax.set_xlabel('neuron number')
+
 plt.legend()
 
 #%%
@@ -405,22 +409,96 @@ plt.legend()
 
 weights = dalemodel_test['weights'].reshape(1)[0]
 
-plot_weights(weights['W_rec'],  
+fcts.plot_weights(weights['W_rec'],  
             xlabel = 'From', 
-            ylabel = 'To')
+            ylabel = 'To', cb=False, matrix='rec')
 
-plot_weights(weights['W_in'])
-plot_weights(weights['W_out'])
-
+fcts.plot_weights(weights['W_in'], cb=False, matrix='in')
+fcts.plot_weights(weights['W_out'], cb=False, matrix='out')
 
 #%%
-#try and do psychometric curve, need to update code for this
-   
-bins = pd.psychometric_curve(y, mask, train_params,9)
+#look at fraction of neurons preferring choice 1 with and without optogenetic stimulation (target neurons can be modified)
+task = oli_task.PerceptualDiscrimination(dt = 10,
+                              tau = 100, 
+                              T = 2500, 
+                              N_batch = 100) # Initialize the task object
 
-plt.plot(bins)
-plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
+task_pert = oli_task_perturb.PerceptualDiscrimination(dt = 10,
+                              tau = 100, 
+                              T = 2500, 
+                              N_batch = 100) # Initialize the task object
 
+n_range = [0,40]
+hem = [1,2] 
+#%%
+
+frac_ch1 = []
+frac_ch1_opt = [[],[],[]]
+frac_ch1_opt_hem1_hem2stim = []
+
+accuracy = []
+accuracy_opto_hem1_hem1stim = []
+
+
+for item in os.listdir('/UserFolder/neur0003/third_set_models')[0:5]:
+    
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
+    weights = dalemodel_test['weights'].reshape(1)[0]
+    trials = dalemodel_test['trials'].reshape(1)[0]
+    stim_pref_dict = fcts.stim_pref_(trials)
+
+    network_params = task.get_task_params() # get the params passed in and defined in pd
+    network_params['N_rec'] = 100 # set the number of recurrent units in the model
+    network_params['name'] = 'basic'
+    network_params['N_in'] = 3
+    network_params['N_out'] = 2
+    network_params.update(weights)
+    
+    Model = Basic(network_params)
+    x, y,mask, train_params = task.get_trial_batch() # get pd task inputs and outputs
+    model_output, model_state = Model.test(x) # run the model on input x
+    choices, diff, z = task.psychometric_curve(model_output, train_params)
+    acc = task.accuracy_function(y, model_output, mask)
+    frac_ch1.append(z)
+    accuracy.append(acc)
+    Model.destruct() 
+    
+    for j in [[1, 2], [2,1], 3]:
+        if type(j)==list:
+            indices = count_pref(stim_pref_dict[f'max_hem{j[0]}stim'][n_range[0]:n_range[1]], stim_pref_dict[f'max_hem{j[1]}stim'][n_range[0]:n_range[1]], indices=True)
+        else:
+            indices = count_pref(stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], indices=True)
+            indices += count_pref(stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], indices=True)
+
+        if n_range == [40,80]:
+            indices = np.array(np.zeros(40), indices).flatten()
+        
+        weights_modif = adapt_for_opto(weights, indices)
+        
+        opt_params = task_pert.get_task_params()
+        opt_params['N_rec'] = 100 # set the number of recurrent units in the model
+        opt_params['name'] = 'opt'
+        opt_params['N_in'] = 4
+        opt_params.update(weights_modif)
+        type(opt_params['dale_ratio']) == np.ndarray and opt_params['dale_ratio'].item() == None
+        Model_opt = Basic(opt_params)
+        
+        x, y,mask, train_params = task_pert.get_trial_batch() # get pd task inputs and outputs
+        model_output, model_state = Model_opt.test(x) # run the model on input x
+        choices, diff, z = task.psychometric_curve(model_output, train_params)
+        #acc = task_pert.accuracy_function(y, model_output, mask)
+        #accuracy_opto.append(acc)
+        if type(j)==list:
+            frac_ch1_opt[j[0]].append(z)
+        else:
+            frac_ch1_opt[j].append(z)
+        Model_opt.destruct()
+    
+
+#%%
+
+Model.destruct()    
+Model_opt.destruct()
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
 
@@ -466,23 +544,3 @@ y = norm.pdf(x,lmean,lstd)
 
 plt.hist(log_weights, bins=50, alpha = 0.75, density=True)
 plt.plot(x,y, 'k', color='coral')
-
-#%%
-
-
-# Fixing random state for reproducibility
-np.random.seed(19680801)
-
-# unit area ellipse
-rx, ry = 3., 1.
-area = rx * ry * np.pi
-theta = np.arange(0, 2 * np.pi + 0.02, 0.1)
-verts = np.column_stack([rx / area * np.cos(theta), ry / area * np.sin(theta)])
-
-x, y, s, c = np.random.rand(4, 30)
-s *= 10**2.
-
-fig, ax = plt.subplots()
-ax.scatter(x, y, s, c, marker=np.array([0.3,0.1],))
-
-plt.show()

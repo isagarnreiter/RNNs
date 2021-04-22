@@ -67,7 +67,7 @@ losses, initialTime, trainTime = daleModel.train(pd, train_params)
 
 # Test the trained model and save the test batch in a dictionary ---------------------------
 # only first 10 trials are saved because otherwise the file becomes too big
-trials = fcts.gen_pol_trials(daleModel, pd)
+trials = fcts.gen_pol_trials(daleModel, pd, [[0.0, 0.6], [0.6, 0.0]])
 weights = daleModel.get_weights() # Fetch the weights of the network 
 
 

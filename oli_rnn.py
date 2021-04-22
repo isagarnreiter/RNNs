@@ -5,7 +5,7 @@ Created on Fri Nov 13 20:49:12 2020
 @author: Isabelle
 """
 
-from oli_task import PerceptualDiscrimination
+from oli_task_perturb import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
 
 import tensorflow as tf
@@ -30,12 +30,13 @@ np.random.seed(seed)
 
 # ---------------------- Set up a basic model ---------------------------
 
-params = initialise_params('dale_network', 50)
+params = fcts.initialise_params('dale_network', 100)
 
 pd = PerceptualDiscrimination(dt = params['dt'],
                               tau = params['tau'], 
                               T = params['T'], 
                               N_batch = params['N_batch']) # Initialize the task object
+
 
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
 dale_network_params['N_rec'] = params['N_rec'] # set the number of recurrent units in the model
@@ -51,10 +52,10 @@ dale_network_params['dale_ratio'] =0.8
 #N_callosal corresponds to the number of neurons with callosal projections.
 
 N_callosal = 20
-P_in = 0.1
-P_rec = 0.1
-P_out = 0.5
-in_connect, rec_connect, out_connect, = initialise_connectivity(params, N_callosal, P_in, P_rec, P_out)
+P_in = 1.0
+P_rec = 1.0
+P_out = 1.0
+in_connect, rec_connect, out_connect, = fcts.initialise_connectivity(params, N_callosal, P_in, P_rec, P_out)
 
 
 dale_network_params['input_connectivity'] = in_connect
@@ -91,46 +92,46 @@ fig1= plt.figure()
 plt.plot(losses)
 plt.ylabel("Loss")
 plt.xlabel("Training Iteration")
-plt.title("Loss During Training")
-
+plt.xticks([0, 20, 40, 60, 80, 100], labels=[0, 20000, 40000, 60000, 80000, 100000])
+plt.yticks([0, 0.05, 0.1, .15])
 #%%
 
 # ---------------------- Test the trained model ---------------------------
 x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = daleModel.test(x) # run the model on input x
+#%%
 
+choices, diff = pd.psychometric_curve(model_output, train_params)
+
+plt.plot(diff, choices,marker='o', c='black')
+plt.xlabel('U1-U2')
+plt.ylabel('% choice 1')
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 0
+trial_nb = 14
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
 
 dt = params['dt']
 
-fig2 = plt.figure(figsize=(20,8))
+fig2, ax = plt.subplots(2,2,figsize=(20,8))
 
-ax1 = plt.subplot(221)
-ax1.plot(range(0, len(x[0,:,:])*dt,dt), x[trial_nb,:,:])
-ax1.set_title("Input", fontsize = 16)
-ax1.legend(["Input Channel 1", "Input Channel 2", 'go cue'])
-
-ax2 = plt.subplot(222)
-ax2.plot(range(0, len(x[0,:,:])*dt,dt), y[trial_nb,:,:])
-ax2.set_title("Expected output", fontsize = 16)
-ax2.set_ylim(-0.1,1.1)
-
-ax3 = plt.subplot(224)
-ax3.plot(range(0, len(x[0,:,:])*dt,dt), model_output[trial_nb,:,:])
-ax3.set_xlabel("Time (ms)", fontsize = 16)
-ax3.set_title("Output", fontsize = 16)
-ax3.set_ylim(-0.1,1.1)
-
-ax4 = plt.subplot(223)
-ax4.plot(range(0, len(x[0,:,:])*dt,dt), model_state[trial_nb,:,:])
-ax4.set_xlabel("Time (ms)", fontsize = 16)
-ax4.set_title("State of each neuron", fontsize = 16)
-ax4.set_ylim(-0.5,0.5)
+z=0
+zipp = [x,y,model_state, model_output]
+titles = ['Input', 'Target Output', 'States', 'Output']
+for i in range(2):
+    for j in range(2):
+        ax[i,j].plot(range(0, len(zipp[z][0,:,:])*dt,dt), zipp[z][trial_nb,:,:])
+        ax[i,j].set_title(titles[z], fontsize=16)
+        ax[i,j].set_ylim(-0.1,1.1)
+        ax[i,j].set_yticks([0,1])
+        ax[1,j].set_xlabel("Time (ms)", fontsize = 12)
+        z+=1
+        
+ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
+ax[1,0].set_ylim(-0.8, 0.8)
+ax[1,0].set_yticks([-0.5, 0, 0.5])
 
 fig2.tight_layout()
 
@@ -155,10 +156,6 @@ ax2.set_title("State of each neuron in H2", fontsize = 10)
 
 plt.tight_layout()
 
-
-#%%
-stim_pref_dict = stim_pref(daleModel, pd)
-
 #%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
 unity_line = [-1, 0, 1]
@@ -178,25 +175,18 @@ ax1.set_xlabel('stim in hem 1')
 ax1.set_ylabel('stim in hem 2')
 
 #%%
-        
-bins = pd.psychometric_curve(y, mask, train_params,9)
-
-plt.plot(bins)
-plt.xticks(ticks = np.linspace(0, 8, 9), labels=np.linspace(-1, 1, 9))
-
-#%%
 # ---------------------- Save and plot the weights of the network ---------------------------
 
 weights = daleModel.get_weights()
-
+#%%
 fcts.plot_weights(weights['W_rec'],  
             xlabel = 'From', 
-            ylabel = 'To')
+            ylabel = 'To', matrix='rec',cb=True)
 
-fcts.plot_weights(weights['W_in'])
-fcts.plot_weights(weights['W_out'])
+fcts.plot_weights(weights['W_in'], matrix='in')
+fcts.plot_weights(weights['W_out'], matrix='out')
 
-daleModel.save("weights/seg_output_20_1_01_01")
+daleModel.save("weights/model_example_write_up")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights

@@ -8,13 +8,35 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 import numpy as np
 
-def plot_weights(weights, title="", xlabel= "", ylabel=""):
+def plot_weights(weights, xlabel="", ylabel="", cb = False, matrix = ''):
     cmap = plt.set_cmap('RdBu_r')
-    img = plt.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.colorbar()
+    if matrix == 'in':
+        f = plt.figure(figsize=(6,6))
+        ax1 = plt.subplot(111)
+        ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
+        ax1.set_yticks([0, 20, 40, 60, 80])
+        ax1.set_xticks([0,1,2])
+        ax1.set_xticklabels([1,2,3])
+    if matrix == 'out':
+        f = plt.figure(figsize=(6,2))
+        ax1 = plt.subplot(111)
+        ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
+        ax1.set_xticks([0, 20, 40, 60, 80])
+        ax1.set_yticks([0,1])
+        ax1.set_yticklabels([1,2])
+    if matrix == 'rec':
+        f = plt.figure(figsize=(6,6))
+        ax1 = plt.subplot(111)
+        ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
+        ax1.set_xticks([0, 20, 40, 60, 80])
+        ax1.set_xticks([0, 20, 40, 60, 80])
+    if cb==True:
+        plt.colorbar(ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5)))
+    ax1.set_title(xlabel, fontsize=12)
+    ax1.set_ylabel(ylabel, fontsize=12)
+    plt.tight_layout()
+    
+    
     
     
 def initialise_params(name, N_batch):
@@ -23,7 +45,7 @@ def initialise_params(name, N_batch):
     params['tau'] = 100 # The intrinsic time constant of neural state decay.
     params['T'] = 2500 # The trial length.
     params['N_rec'] = 100 # The number of recurrent units in the network.
-    params['N_in'] = 3
+    params['N_in'] = 4
     params['N_out'] = 2
     params['Name'] = name
     params['N_batch'] = N_batch   
@@ -47,7 +69,8 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     input_connectivity[0:int(P_in*N_rec*N_in)] = 1
     np.random.shuffle(input_connectivity)
     input_connectivity = input_connectivity.reshape(N_rec, N_in)
-
+    if N_in==4:
+        input_connectivity[:, 3] = np.ones(N_rec)
     
     rec_connectivity = np.zeros((N_rec * N_rec))
     rec_connectivity[0:int(P_rec*N_rec*N_rec)] = 1
@@ -85,12 +108,11 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     return input_connectivity, rec_connectivity, output_connectivity
 
 
-def gen_pol_trials(daleModel, pd):
+def gen_pol_trials(daleModel, pd, j):
     trials = {}
-    j = [[0.0, 0.6], [0.6, 0.0]]
     k = [2,1]
     
-    for i in [0,1]:
+    for i in range(len(j)):
         trials[f'hem{k[i]}stim'] = {}
         params_single_trial = {'intensity_0': j[i][0], 
                                 'intensity_1': j[i][1], 
@@ -149,3 +171,15 @@ def get_average(trials):
             average_trajectory[f'hem{i+1}_hem{hem[j]}stim'] = np.mean(target[:, indices], axis=1)
     
     return average_trajectory
+
+
+def adapt_for_opto(weights, indices):
+    weights_modif = weights
+    N_rec =  weights_modif['W_in'].shape[0]
+    a = np.zeros(N_rec)
+    a[indices] = 1
+    a = a.reshape(N_rec, 1)
+    
+    weights_modif['input_connectivity'] = np.append(weights_modif['input_connectivity'], a, axis=1)
+    weights_modif['W_in'] = np.append(weights_modif['W_in'], a*0.3, axis=1)
+    return weights_modif

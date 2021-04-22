@@ -72,6 +72,10 @@ class PerceptualDiscrimination(Task):
         params['go_cue_duration'] = self.T/100
         params['post_go_cue'] = self.T / 20
 
+        params['intensity_opto'] = 0.6
+        params['duration_opto'] = 20
+        params['repetition_opto'] = 100
+        
         return params
 
     def trial_function(self, t, params):
@@ -100,11 +104,15 @@ class PerceptualDiscrimination(Task):
         go_duration = params['go_cue_duration']
         post_cue = params['post_go_cue']
         
+        int_opto= params['intensity_opto'] = 0.6
+        dur_opto = params['duration_opto'] = 20
+        rep_opto = params['repetition_opto'] = 100
         # ----------------------------------
         # Initialize with noise
         # ----------------------------------
         x_t = np.sqrt(2*.01*np.sqrt(10)*np.sqrt(self.dt)*noise*noise)*np.random.randn(self.N_in) + 0.1
         x_t[2] = 0
+        x_t[3] = 0
         
         y_t = np.zeros(self.N_out)
         mask_t = np.ones(self.N_out)
@@ -118,13 +126,11 @@ class PerceptualDiscrimination(Task):
         if t <= go_onset + post_cue:
             y_t =+ self.lo
             
-            
         if  go_onset < t < go_onset + go_duration:
             x_t[2] = 0.5
 
         if go_onset < t < go_onset + post_cue:
             mask_t = np.zeros(self.N_out)
-            
 
         if t > go_onset + post_cue:
             if int_0 > int_1:
@@ -140,7 +146,9 @@ class PerceptualDiscrimination(Task):
                 y_t[0] = rand_out
                 y_t[1] = 1-rand_out
 
-        
+        if t%rep_opto == 0 and t<go_onset:
+            x_t[3] = int_opto
+            
         return x_t, y_t, mask_t
     
    
@@ -178,7 +186,7 @@ class PerceptualDiscrimination(Task):
         digitized = np.digitize(diff1_2, bins)
         bin_means = np.array([chosen[digitized == j].mean() for j in range(1, len(bins)+1)])
         bin_means = bin_means*100
-        
+    
         chosen=np.array(chosen)
         frac_choice_1 = len(chosen[chosen==1])/len(chosen)
         
