@@ -171,42 +171,55 @@ results = ['x', 'y', 'model_state', 'model_output']
 labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
 lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
 
-for item in os.listdir('UserFolder/neur0003/second_set_models'):
+for item in os.listdir('UserFolder/neur0003/third_set_models'):
     
-    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/second_set_models/{item}', allow_pickle=True))
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
+    weights = dalemodel_test['weights'].reshape(1)[0]
     trials = dalemodel_test['trials'].reshape(1)[0]
-    for l in list(trials.keys()):
+    
+    network_params = task.get_task_params() # get the params passed in and defined in pd
+    network_params['N_rec'] = 100 # set the number of recurrent units in the model
+    network_params['name'] = 'basic'
+    network_params['N_in'] = 3
+    network_params['N_out'] = 2
+    network_params.update(weights)
+    
+    Model = Basic(network_params)
+    
+    trial_equal = fcts.gen_pol_trials(Model, task, [[0.4,0.4]],[0])
+
     #make a figure of the trials
     
-        for i in range(len(trials[l]['mask'])):
-            if trials[l]['mask'][i][0] == 0:
-                trials[l]['y'][i] =+ np.nan
-        
-        x_len = range(0,len(trials[l]['x'])*dt,dt)
-        data = {'H1':trials[l]['model_state'][:,0:40], 'H2':trials[l]['model_state'][:,40:80]}
-        keys = list(data.keys())
-        
-        fig2, ax = plt.subplots(2, 3, figsize=(30,8))
-        fig2.suptitle(f'{l} Trial for: {item}', fontsize=16)
-        x=0
-        for i in range(2):
-            for j in range(2):
-                ax[i,j].plot(x_len, trials[l][results[x]])
-                ax[i,j].set_title(labels[x], fontsize = 14)
-                x= x+1
-                
-            ax[i,2].plot(x_len, data[keys[i]], alpha=0.9)
-            ax[i,2].set_ylim(-0.8,0.8)
-            ax[i,2].set_title(f"{keys[i]}", fontsize = 14)
-        
-        for i in range(3):
-            ax[1,i].set_xlabel("Time (ms)", fontsize = 10)
-            
-        ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
-        
-        fig2.tight_layout()
-        fig2.savefig(f'UserFolder/neur0003/trials_second_set/{item[0:-4]}_{l}')
+    for i in range(len(trial_equal['hem0stim']['mask'])):
+        if trial_equal['hem0stim']['mask'][i][0] == 0:
+            trial_equal['hem0stim']['y'][i] =+ np.nan
     
+    x_len = range(0,len(trial_equal['hem0stim']['x'])*dt,dt)
+    data = {'H1':trial_equal['hem0stim']['model_state'][:,0:40], 'H2':trial_equal['hem0stim']['model_state'][:,40:80]}
+    keys = list(data.keys())
+    
+    fig2, ax = plt.subplots(2, 3, figsize=(30,8))
+    fig2.suptitle(f'{l} Trial for: {item}', fontsize=16)
+    x=0
+    for i in range(2):
+        for j in range(2):
+            ax[i,j].plot(x_len, trial_equal['hem0stim'][results[x]])
+            ax[i,j].set_title(labels[x], fontsize = 14)
+            x= x+1
+            
+        ax[i,2].plot(x_len, data[keys[i]], alpha=0.9)
+        ax[i,2].set_ylim(-0.8,0.8)
+        ax[i,2].set_title(f"{keys[i]}", fontsize = 14)
+    
+    for i in range(3):
+        ax[1,i].set_xlabel("Time (ms)", fontsize = 10)
+        
+    ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
+    
+    fig2.tight_layout()
+    
+    fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
+    Model.destruct()
 
 #%%
 
@@ -433,67 +446,65 @@ hem = [1,2]
 #%%
 
 frac_ch1 = []
-frac_ch1_opt = [[],[],[]]
+frac_ch1_opt_hem1_hem1stim = []
 frac_ch1_opt_hem1_hem2stim = []
 
 accuracy = []
 accuracy_opto_hem1_hem1stim = []
 
 
-for item in os.listdir('/UserFolder/neur0003/third_set_models')[0:5]:
+for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
     weights = dalemodel_test['weights'].reshape(1)[0]
     trials = dalemodel_test['trials'].reshape(1)[0]
     stim_pref_dict = fcts.stim_pref_(trials)
 
-    network_params = task.get_task_params() # get the params passed in and defined in pd
-    network_params['N_rec'] = 100 # set the number of recurrent units in the model
-    network_params['name'] = 'basic'
-    network_params['N_in'] = 3
-    network_params['N_out'] = 2
-    network_params.update(weights)
+    # network_params = task.get_task_params() # get the params passed in and defined in pd
+    # network_params['N_rec'] = 100 # set the number of recurrent units in the model
+    # network_params['name'] = 'basic'
+    # network_params['N_in'] = 3
+    # network_params['N_out'] = 2
+    # network_params.update(weights)
     
-    Model = Basic(network_params)
-    x, y,mask, train_params = task.get_trial_batch() # get pd task inputs and outputs
-    model_output, model_state = Model.test(x) # run the model on input x
-    choices, diff, z = task.psychometric_curve(model_output, train_params)
-    acc = task.accuracy_function(y, model_output, mask)
-    frac_ch1.append(z)
-    accuracy.append(acc)
-    Model.destruct() 
-    
-    for j in [[1, 2], [2,1], 3]:
-        if type(j)==list:
-            indices = count_pref(stim_pref_dict[f'max_hem{j[0]}stim'][n_range[0]:n_range[1]], stim_pref_dict[f'max_hem{j[1]}stim'][n_range[0]:n_range[1]], indices=True)
-        else:
-            indices = count_pref(stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], indices=True)
-            indices += count_pref(stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], indices=True)
+    # Model = Basic(network_params)
+    # x, y,mask, train_params = task.get_trial_batch() # get pd task inputs and outputs
+    # model_output, model_state = Model.test(x) # run the model on input x
+    # choices, diff, z = task.psychometric_curve(model_output, train_params)
+    # acc = task.accuracy_function(y, model_output, mask)
+    # frac_ch1.append(z)
+    # accuracy.append(acc)
+    # Model.destruct() 
 
-        if n_range == [40,80]:
-            indices = np.array(np.zeros(40), indices).flatten()
-        
-        weights_modif = adapt_for_opto(weights, indices)
-        
-        opt_params = task_pert.get_task_params()
-        opt_params['N_rec'] = 100 # set the number of recurrent units in the model
-        opt_params['name'] = 'opt'
-        opt_params['N_in'] = 4
-        opt_params.update(weights_modif)
-        type(opt_params['dale_ratio']) == np.ndarray and opt_params['dale_ratio'].item() == None
-        Model_opt = Basic(opt_params)
-        
-        x, y,mask, train_params = task_pert.get_trial_batch() # get pd task inputs and outputs
-        model_output, model_state = Model_opt.test(x) # run the model on input x
-        choices, diff, z = task.psychometric_curve(model_output, train_params)
-        #acc = task_pert.accuracy_function(y, model_output, mask)
-        #accuracy_opto.append(acc)
-        if type(j)==list:
-            frac_ch1_opt[j[0]].append(z)
-        else:
-            frac_ch1_opt[j].append(z)
-        Model_opt.destruct()
+    indices = count_pref(stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], indices=True)
+    #indices += count_pref(stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], indices=True)
+
+    if n_range == [40,80]:
+        indices = np.array(np.zeros(40), indices).flatten()
     
+    assert(weights['input_connectivity'].shape == (100, 3))
+    weights_modif = adapt_for_opto(weights, indices)
+    
+    opt_params = task_pert.get_task_params()
+    opt_params['N_rec'] = 100 # set the number of recurrent units in the model
+    opt_params['name'] = 'opt'
+    opt_params['N_in'] = 4
+    opt_params.update(weights_modif)
+    type(opt_params['dale_ratio']) == np.ndarray and opt_params['dale_ratio'].item() == None
+    Model_opt = Basic(opt_params)
+    
+    trials = gen_pol_trials(Model_opt, task_pert, [[0.2,0.2],[0.4,0.4],[0.4,0.4]], [0,1,2])
+    
+    choices = []
+    diffs = []
+    zs = []
+    for i in range(3)
+        choice, diff, z = task.psychometric_curve(trials[f'hem{i}stim']['model_output'], trials[f'hem{i}stim']['train_params'])
+    #acc = task_pert.accuracy_function(y, model_output, mask)
+    #accuracy_opto.append(acc)
+
+    
+    Model_opt.destruct()
 
 #%%
 

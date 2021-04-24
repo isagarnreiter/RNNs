@@ -167,20 +167,34 @@ class PerceptualDiscrimination(Task):
         for i in range(len(train_params)):
             if train_params[i]['intensity_0']!=0.0 or train_params[i]['intensity_1']!=0.0:
                 diff1_2.append(round(train_params[i]['intensity_0']-train_params[i]['intensity_1'], 2))
-                if correct_output[i, 249, 0] > 0.8:
+                if correct_output[i, 249, 0] > 0.8 and correct_output[i,249,1] < 0.8:
                     chosen.append(1)
+                elif correct_output[i, 249, 1] > 0.8 and correct_output[i,249,0] < 0.8:
+                    chosen.append(2)
                 else:
                     chosen.append(0)
                     
-        diff1_2 = np.array(diff1_2)
-        chosen = np.array(chosen)
+                    
         bins = np.array([-0.6, -0.4, -0.2,  0. ,  0.2,  0.4,  0.6])
         digitized = np.digitize(diff1_2, bins)
-        bin_means = np.array([chosen[digitized == j].mean() for j in range(1, len(bins)+1)])
-        bin_means = bin_means*100
+        diff1_2 = np.array(diff1_2)
         
-        chosen=np.array(chosen)
-        frac_choice_1 = len(chosen[chosen==1])/len(chosen)
+        chosen_proc = [[],[]]
+        bin_means = [[],[]]
+        frac_choice = [[],[]]
+        x = [1,2]
+        for j in range(2):
+            for i in range(len(chosen)):
+                if chosen[i]==x[j]:
+                    chosen_proc[j].append(1)
+                else:
+                    chosen_proc[j].append(0)
+            
+            chosen_proc[j] = np.array(chosen_proc[j])
+            bin_means[j] = np.array([chosen_proc[j][digitized == k].mean() for k in range(1, len(bins)+1)])
+            bin_means[j] = bin_means[j]*100
         
-        return bin_means, bins, frac_choice_1
+            frac_choice[j] = len(chosen_proc[j][chosen_proc[j]==1])/len(chosen_proc[j])
+        
+        return bin_means, bins, frac_choice
                 

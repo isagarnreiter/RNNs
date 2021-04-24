@@ -5,7 +5,7 @@ Created on Fri Nov 13 20:49:12 2020
 @author: Isabelle
 """
 
-from oli_task_perturb import PerceptualDiscrimination
+from oli_task import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
 
 import tensorflow as tf
@@ -101,14 +101,16 @@ x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = daleModel.test(x) # run the model on input x
 #%%
 
-choices, diff = pd.psychometric_curve(model_output, train_params)
+bin_means, bins, frac_choice = pd.psychometric_curve(model_output, train_params)
 
-plt.plot(diff, choices,marker='o', c='black')
+plt.plot(bins, bin_means[0],marker='o', label='choice 1')
+plt.plot(bins, bin_means[1],marker='o', c='orange', label = 'choice 2')
 plt.xlabel('U1-U2')
-plt.ylabel('% choice 1')
+plt.legend()
+plt.ylabel('%')
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 14
+trial_nb = 38
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
@@ -186,7 +188,7 @@ fcts.plot_weights(weights['W_rec'],
 fcts.plot_weights(weights['W_in'], matrix='in')
 fcts.plot_weights(weights['W_out'], matrix='out')
 
-daleModel.save("weights/model_example_write_up")
+# daleModel.save("weights/model_example_write_up")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights

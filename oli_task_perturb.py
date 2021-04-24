@@ -73,8 +73,7 @@ class PerceptualDiscrimination(Task):
         params['post_go_cue'] = self.T / 20
 
         params['intensity_opto'] = 0.6
-        params['duration_opto'] = 20
-        params['repetition_opto'] = 100
+        params['end_opto'] = 500
         
         return params
 
@@ -104,9 +103,9 @@ class PerceptualDiscrimination(Task):
         go_duration = params['go_cue_duration']
         post_cue = params['post_go_cue']
         
-        int_opto= params['intensity_opto'] = 0.6
-        dur_opto = params['duration_opto'] = 20
-        rep_opto = params['repetition_opto'] = 100
+        int_opto= params['intensity_opto'] 
+        end_opto = params['end_opto']
+
         # ----------------------------------
         # Initialize with noise
         # ----------------------------------
@@ -146,7 +145,7 @@ class PerceptualDiscrimination(Task):
                 y_t[0] = rand_out
                 y_t[1] = 1-rand_out
 
-        if t%rep_opto == 0 and t<go_onset:
+        if t<end_opto:
             x_t[3] = int_opto
             
         return x_t, y_t, mask_t

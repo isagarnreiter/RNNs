@@ -11,7 +11,7 @@ import numpy as np
 def plot_weights(weights, xlabel="", ylabel="", cb = False, matrix = ''):
     cmap = plt.set_cmap('RdBu_r')
     if matrix == 'in':
-        f = plt.figure(figsize=(6,6))
+        f = plt.figure(figsize=(2,6))
         ax1 = plt.subplot(111)
         ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
         ax1.set_yticks([0, 20, 40, 60, 80])
@@ -45,7 +45,7 @@ def initialise_params(name, N_batch):
     params['tau'] = 100 # The intrinsic time constant of neural state decay.
     params['T'] = 2500 # The trial length.
     params['N_rec'] = 100 # The number of recurrent units in the network.
-    params['N_in'] = 4
+    params['N_in'] = 3
     params['N_out'] = 2
     params['Name'] = name
     params['N_batch'] = N_batch   
@@ -108,9 +108,8 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     return input_connectivity, rec_connectivity, output_connectivity
 
 
-def gen_pol_trials(daleModel, pd, j):
+def gen_pol_trials(daleModel, pd, j, k):
     trials = {}
-    k = [2,1]
     
     for i in range(len(j)):
         trials[f'hem{k[i]}stim'] = {}
