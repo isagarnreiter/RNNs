@@ -35,23 +35,23 @@ tau = 100 # The intrinsic time constant of neural state decay.
 T = 2500 # The trial length.
 N_batch = 50 # The number of trials per training update.
 N_rec = 100 # The number of recurrent units in the network.
-N_in = 3
+N_in = 4
 N_out = 2
 name = 'dale_model' #  Unique name used to determine variable scope for internal use.
 
-#model = dict(np.load('IpsiContra_In05_Rec025_Cal20_s0.npz', allow_pickle=True))
-weights = dalemodel_test['weights'].reshape(1)[0]
+model = dict(np.load('IpsiContra_In05_Rec025_Cal20_s0.npz', allow_pickle=True))
+weights = model['weights'].reshape(1)[0]
 weights_modif = adapt_for_opto(weights, indices)
 
-task_pert = oli_task.PerceptualDiscrimination(dt = dt, tau = tau, T = T, N_batch = N_batch) # Initialize the task object
+task_pert = oli_task_perturb.PerceptualDiscrimination(dt = dt, tau = tau, T = T, N_batch = N_batch) # Initialize the task object
 file_network_params = task_pert.get_task_params() # get the params passed in and defined in pd
 file_network_params['N_rec'] = N_rec # set the number of recurrent units in the model
 file_network_params['name'] = name
 file_network_params['N_in'] = N_in
 file_network_params['N_out'] = N_out
-#file_network_params.update(weights_modif)
+file_network_params.update(weights)
 #load weights 
-file_network_params['load_weight_path'] = 'weights/model_example_write_up.npz.'
+#file_network_params['load_weight_path'] = 'weights/model_example_write_up.npz.'
 
 fileModel = Basic(file_network_params)
 
@@ -67,7 +67,7 @@ plot_weights(weights['W_out'])
 #%%
 
 # ---------------------- Test the trained model ---------------------------
-x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
+x, y,mask, train_params = task_pert.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = fileModel.test(x) # run the model on input x
 
 #%%
@@ -131,7 +131,7 @@ init_state = fileModel.get_weights()['init_state'].reshape(100)
 
 a=[ 5.1872785e-08,  1.5997401e-14,  1.4384385e-14]
 
-trial_nb=18
+trial_nb=19
 
 model_state_init = np.insert(model_state, 0, init_state, axis=1)
 model_state_init = np.round(model_state_init, 5)
@@ -140,7 +140,7 @@ PCA_data = np.concatenate(model_state_init, axis=1)
 
 
 pca_states = PCA(n_components=3)
-PCA_states = pca_states.fit_transform(model_state_init[trial_nb][0:5])
+PCA_states = pca_states.fit_transform(model_state_init[trial_nb])
 #PCA_init_state = pca_states.fit_transform(init_state.reshape(1,100))
 
 figure = plt.figure()

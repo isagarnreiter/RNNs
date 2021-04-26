@@ -121,7 +121,9 @@ def gen_pol_trials(daleModel, pd, j, k):
                                 'stim_duration': 500, 
                                 'go_cue_onset': 1500, 
                                 'go_cue_duration': 25.0, 
-                                'post_go_cue': 125.0}
+                                'post_go_cue': 125.0,
+                                'intensity_opto': 0.4,
+                                'end_opto':500}
     
         x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
         x, y, mask = np.array([x]), np.array([y]), np.array([mask]) #add dimension to shape of x, y, mask to fit the test() function and the figure format
@@ -172,13 +174,20 @@ def get_average(trials):
     return average_trajectory
 
 
-def adapt_for_opto(weights, indices):
-    weights_modif = weights
-    N_rec =  weights_modif['W_in'].shape[0]
+def adapt_for_opto(weights):
+    N_rec =  weights['W_in'].shape[0]
     a = np.zeros(N_rec)
-    a[indices] = 1
     a = a.reshape(N_rec, 1)
     
-    weights_modif['input_connectivity'] = np.append(weights_modif['input_connectivity'], a, axis=1)
-    weights_modif['W_in'] = np.append(weights_modif['W_in'], a*0.3, axis=1)
-    return weights_modif
+    weights['input_connectivity'] = np.append(weights['input_connectivity'], a, axis=1)
+    weights['W_in'] = np.append(weights['W_in'], a, axis=1)
+    return weights
+
+def change_opto_stim(weights, indices):
+    N_rec =  weights['W_in'].shape[0]
+    a = np.zeros(N_rec)
+    a[indices] = 1
+
+    weights['input_connectivity'][:,3] = a
+    weights['W_in'][:,3] = a*0.3
+    return weights

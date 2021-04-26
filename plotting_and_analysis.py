@@ -21,7 +21,7 @@ from fcts import count_pref
 import seaborn as sns
 from pylab import text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+import pickle
 %matplotlib inline
 
 def take_first(elem):
@@ -45,7 +45,7 @@ first_set = pd.read_pickle('/UserFolder/neur0003/first_set_model.pkl')
 
 second_set = pd.read_csv('/UserFolder/neur0003/second_set_model.csv', index_col='Unnamed: 0')
 model_best1 = pd.read_csv('/UserFolder/neur0003/first_set_best.csv', index_col='Unnamed: 0')
-
+third_set = pd.read_pickle('/UserFolder/neur0003/third_set_model.pkl')
 
 #%% 
 #produce dataframe of with info about all models
@@ -165,28 +165,44 @@ for item in os.listdir('/UserFolder/neur0003/trials'):
 
 #%%
 #Save trials
-
+n = [0,40]
+pourc = 100
+coh = 'ipsi'
 dt = 10
 results = ['x', 'y', 'model_state', 'model_output']
 labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
 lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
 
-for item in os.listdir('UserFolder/neur0003/third_set_models'):
+for item in os.listdir('UserFolder/neur0003/third_set_models')[0:5]:
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
-    weights = dalemodel_test['weights'].reshape(1)[0]
+    weights = adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
     trials = dalemodel_test['trials'].reshape(1)[0]
+    stim_pref_dict = fcts.stim_pref_(trials)
     
-    network_params = task.get_task_params() # get the params passed in and defined in pd
+    arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
+    arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
+    indices = count_pref(arr1, arr2, indices=True)
+    if coh[0:4]=='both':
+        indices += count_pref(arr2, arr1, indices=True)
+    
+    if n_range == [40,80]:
+        indices = np.array(np.zeros(40), indices).flatten()
+    
+    indices = indices[:int(pourc/100*len(indices))]
+    
+    weights_modif = change_opto_stim(weights, indices)
+    
+    network_params = task_pert.get_task_params() # get the params passed in and defined in pd
     network_params['N_rec'] = 100 # set the number of recurrent units in the model
     network_params['name'] = 'basic'
-    network_params['N_in'] = 3
+    network_params['N_in'] = 4
     network_params['N_out'] = 2
-    network_params.update(weights)
+    network_params.update(weights_modif)
     
     Model = Basic(network_params)
     
-    trial_equal = fcts.gen_pol_trials(Model, task, [[0.4,0.4]],[0])
+    trial_equal = gen_pol_trials(Model, task_pert, [[0.4,0.4]],[0])
 
     #make a figure of the trials
     
@@ -215,10 +231,10 @@ for item in os.listdir('UserFolder/neur0003/third_set_models'):
         ax[1,i].set_xlabel("Time (ms)", fontsize = 10)
         
     ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
-    
+    ax[1,1].set_ylim(-0.02, 1.02)
     fig2.tight_layout()
     
-    fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
+    #fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
     Model.destruct()
 
 #%%
@@ -441,75 +457,116 @@ task_pert = oli_task_perturb.PerceptualDiscrimination(dt = 10,
                               T = 2500, 
                               N_batch = 100) # Initialize the task object
 
-n_range = [0,40]
-hem = [1,2] 
+n_range = [40,80]
+ 
 #%%
+#create dictionary to compare the output of the models in response to equal stimuli for different levels of optogenetic stimulation
 
-frac_ch1 = []
-frac_ch1_opt_hem1_hem1stim = []
-frac_ch1_opt_hem1_hem2stim = []
+coherences = {'none_00':{}, 'ipsi_25':{}, 'ipsi_50':{}, 'ipsi_75':{}, 'ipsi_100':{},
+              'cont_25':{}, 'cont_50':{}, 'cont_75':{}, 'cont_100':{}, 
+              'both_25':{}, 'both_50':{}, 'both_75':{}, 'both_100':{}}
 
-accuracy = []
-accuracy_opto_hem1_hem1stim = []
-
+for coh in coherences:
+    coherences[coh] = {'0.0':[], '0.2':[],'0.4':[], '0.6':[]}
+    
+intensity = ['0.0', '0.2','0.4', '0.6']
 
 for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
-    weights = dalemodel_test['weights'].reshape(1)[0]
+    weights = adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
     trials = dalemodel_test['trials'].reshape(1)[0]
     stim_pref_dict = fcts.stim_pref_(trials)
+    
+    for coh in coherences:
+        if coh[0:4]=='cont' or coh[0:4]=='none' or coh[0:4]=='both':
+            stim1 = 'max_hem1stim'
+            stim2 = 'max_hem2stim'
+            
+        if coh[0:4]=='ipsi':
+            stim1 = 'max_hem2stim'
+            stim2 = 'max_hem1stim'
+        
+        # network_params = task.get_task_params() # get the params passed in and defined in pd
+        # network_params['N_rec'] = 100 # set the number of recurrent units in the model
+        # network_params['name'] = 'basic'
+        # network_params['N_in'] = 3
+        # network_params['N_out'] = 2
+        # network_params.update(weights)
+        
+        # Model = Basic(network_params)
+        # x, y,mask, train_params = task.get_trial_batch() # get pd task inputs and outputs
+        # model_output, model_state = Model.test(x) # run the model on input x
+        # choices, diff, z = task.psychometric_curve(model_output, train_params)
+        # acc = task.accuracy_function(y, model_output, mask)
+        # frac_ch1.append(z)
+        # accuracy.append(acc)
+        # Model.destruct() 
+        
+        arr1 = stim_pref_dict[stim1][n_range[0]:n_range[1]]
+        arr2 = stim_pref_dict[stim2][n_range[0]:n_range[1]]
+        indices = count_pref(arr1, arr2, indices=True)
+        if coh[0:4]=='both':
+            indices += count_pref(arr2, arr1, indices=True)
+    
+        if n_range == [40,80]:
+            indices = np.array(indices)
+            indices = indices+40
+        
+        pourc = int(coh[5:])
+        indices = indices[:int(pourc/100*len(indices))]
+        indices=list(indices)
+        weights_modif = change_opto_stim(weights, indices)
+        print(coh, indices)
+        opt_params = task_pert.get_task_params()
+        opt_params['N_rec'] = 100 # set the number of recurrent units in the model
+        opt_params['name'] = 'opt'
+        opt_params['N_in'] = 4
+        opt_params.update(weights_modif)
+        type(opt_params['dale_ratio']) == np.ndarray and opt_params['dale_ratio'].item() == None
+        Model_opt = Basic(opt_params)
+        
+        trials = gen_pol_trials(Model_opt, task_pert, [[0.0, 0.0],[0.2,0.2],[0.4,0.4],[0.6,0.6]], [0,1,2,3])
+        
+        keys1 = list(av_stim.keys())
+        for i in range(4):
+            coherences[coh][intensity[i]].append(trials[f'hem{i}stim']['model_output'][249])
+            
+        #acc = task_pert.accuracy_function(y, model_output, mask)
+        #accuracy_opto.append(acc)
 
-    # network_params = task.get_task_params() # get the params passed in and defined in pd
-    # network_params['N_rec'] = 100 # set the number of recurrent units in the model
-    # network_params['name'] = 'basic'
-    # network_params['N_in'] = 3
-    # network_params['N_out'] = 2
-    # network_params.update(weights)
-    
-    # Model = Basic(network_params)
-    # x, y,mask, train_params = task.get_trial_batch() # get pd task inputs and outputs
-    # model_output, model_state = Model.test(x) # run the model on input x
-    # choices, diff, z = task.psychometric_curve(model_output, train_params)
-    # acc = task.accuracy_function(y, model_output, mask)
-    # frac_ch1.append(z)
-    # accuracy.append(acc)
-    # Model.destruct() 
+        Model_opt.destruct()
+        
+#%%
+repla = coherences
+for i in coherences:
+    for j in coherences[i]:
+        coherences[i][j] = np.array(coherences[i][j])
+        coherences[i][j] = np.delete(coherences[i][j],15, axis=0)
+        coherences[i][j] = coherences[i][j].reshape(39,2)
 
-    indices = count_pref(stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], indices=True)
-    #indices += count_pref(stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]], stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]], indices=True)
+f = open("/UserFolder/neur0003/coherences_dict_hem2.pkl","wb")
+pickle.dump(coherences,f)
+f.close()
 
-    if n_range == [40,80]:
-        indices = np.array(np.zeros(40), indices).flatten()
-    
-    assert(weights['input_connectivity'].shape == (100, 3))
-    weights_modif = adapt_for_opto(weights, indices)
-    
-    opt_params = task_pert.get_task_params()
-    opt_params['N_rec'] = 100 # set the number of recurrent units in the model
-    opt_params['name'] = 'opt'
-    opt_params['N_in'] = 4
-    opt_params.update(weights_modif)
-    type(opt_params['dale_ratio']) == np.ndarray and opt_params['dale_ratio'].item() == None
-    Model_opt = Basic(opt_params)
-    
-    trials = gen_pol_trials(Model_opt, task_pert, [[0.2,0.2],[0.4,0.4],[0.4,0.4]], [0,1,2])
-    
-    choices = []
-    diffs = []
-    zs = []
-    for i in range(3)
-        choice, diff, z = task.psychometric_curve(trials[f'hem{i}stim']['model_output'], trials[f'hem{i}stim']['train_params'])
-    #acc = task_pert.accuracy_function(y, model_output, mask)
-    #accuracy_opto.append(acc)
+ #%%
+coherences_hem1_opt = pd.read_pickle('/UserFolder/neur0003/coherences_dict.pkl')
 
+file_order = [] #15 still in there, but was removed from coherence dictionary because didn't train
+for item in os.listdir('/UserFolder/neur0003/third_set_models'):
+    file_order.append(item)
     
-    Model_opt.destruct()
+coh_averages = np.array([])
+for i in coherences:
+    for j in coherences[i]:
+        coh_averages = np.append(coh_averages, np.mean(coherences[i][j], axis=0))
+coh_averages = coh_averages.reshape(13, 4, 2)    
 
 #%%
+plt.plot(coh_averages[0,:,:], marker='o')
+plt.ylim(-0.05, 1)
 
-Model.destruct()    
-Model_opt.destruct()
+
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
 
