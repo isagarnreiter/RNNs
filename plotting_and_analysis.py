@@ -8,6 +8,7 @@ Created on Mon Mar 22 21:13:02 2021
 import oli_task
 import oli_task_perturb
 from matplotlib import pyplot as plt
+from psychrnn.backend.simulation import BasicSimulator
 from psychrnn.backend.models.basic import Basic
 import numpy as np
 from scipy.stats import lognorm, norm, gaussian_kde
@@ -157,33 +158,31 @@ model_best = pd.DataFrame(model_best, columns = columns)
 model_best.to_csv('UserFolder/neur0003/first_set_best.csv')
 
 #%%
-
-#add all figures generated for stim preference to a seperate folder
-for item in os.listdir('/UserFolder/neur0003/trials'):
-    if f'{item[:-13]}.npz' in np.array(model_best[['filename']])[:,0]:
-        newPath = shutil.copy(f'/UserFolder/neur0003/trials/{item}', '/UserFolder/neur0003/trials_select')
-
-#%%
 #Save trials
 n = [0,40]
 pourc = 100
-coh = 'ipsi'
+coh = 'both'
 dt = 10
 results = ['x', 'y', 'model_state', 'model_output']
 labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
 lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
 
-for item in os.listdir('UserFolder/neur0003/third_set_models')[0:5]:
+for item in os.listdir('/UserFolder/neur0003/third_set_models')[36:37]:
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
     weights = adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
     trials = dalemodel_test['trials'].reshape(1)[0]
     stim_pref_dict = fcts.stim_pref_(trials)
     
-    arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
-    arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
+    if coh == 'ipsi' or coh=='both':
+        arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
+        arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
+    if coh == 'contra':
+        arr1 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
+        arr2 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
+    
     indices = count_pref(arr1, arr2, indices=True)
-    if coh[0:4]=='both':
+    if coh =='both':
         indices += count_pref(arr2, arr1, indices=True)
     
     if n_range == [40,80]:
@@ -192,34 +191,25 @@ for item in os.listdir('UserFolder/neur0003/third_set_models')[0:5]:
     indices = indices[:int(pourc/100*len(indices))]
     
     weights_modif = change_opto_stim(weights, indices)
+    simulator = BasicSimulator(weights = weights_modif , params = {'dt': 10, 'tau': 100})
+    trial_equal = gen_pol_trials(simulator, task_pert, [[0.4,0.2]], opto_stim=0.4, sim=True)
     
-    network_params = task_pert.get_task_params() # get the params passed in and defined in pd
-    network_params['N_rec'] = 100 # set the number of recurrent units in the model
-    network_params['name'] = 'basic'
-    network_params['N_in'] = 4
-    network_params['N_out'] = 2
-    network_params.update(weights_modif)
-    
-    Model = Basic(network_params)
-    
-    trial_equal = gen_pol_trials(Model, task_pert, [[0.4,0.4]],[0])
-
     #make a figure of the trials
     
-    for i in range(len(trial_equal['hem0stim']['mask'])):
-        if trial_equal['hem0stim']['mask'][i][0] == 0:
-            trial_equal['hem0stim']['y'][i] =+ np.nan
+    for i in range(len(trial_equal['hem1stim']['mask'])):
+        if trial_equal['hem1stim']['mask'][i][0] == 0:
+            trial_equal['hem1stim']['y'][i] =+ np.nan
     
-    x_len = range(0,len(trial_equal['hem0stim']['x'])*dt,dt)
-    data = {'H1':trial_equal['hem0stim']['model_state'][:,0:40], 'H2':trial_equal['hem0stim']['model_state'][:,40:80]}
+    x_len = range(0,len(trial_equal['hem1stim']['x'])*dt,dt)
+    data = {'H1':trial_equal['hem1stim']['model_state'][:,0:40], 'H2':trial_equal['hem1stim']['model_state'][:,40:80]}
     keys = list(data.keys())
     
     fig2, ax = plt.subplots(2, 3, figsize=(30,8))
-    fig2.suptitle(f'{l} Trial for: {item}', fontsize=16)
+    fig2.suptitle(f'Trial for: {item} with opto stim to {pourc}% {coh} cells in Hem1', fontsize=16)
     x=0
     for i in range(2):
         for j in range(2):
-            ax[i,j].plot(x_len, trial_equal['hem0stim'][results[x]])
+            ax[i,j].plot(x_len, trial_equal['hem1stim'][results[x]])
             ax[i,j].set_title(labels[x], fontsize = 14)
             x= x+1
             
@@ -235,7 +225,7 @@ for item in os.listdir('UserFolder/neur0003/third_set_models')[0:5]:
     fig2.tight_layout()
     
     #fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
-    Model.destruct()
+
 
 #%%
 
@@ -509,7 +499,8 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         indices = count_pref(arr1, arr2, indices=True)
         if coh[0:4]=='both':
             indices += count_pref(arr2, arr1, indices=True)
-    
+            random.shuffle(indices)
+            
         if n_range == [40,80]:
             indices = np.array(indices)
             indices = indices+40
@@ -519,25 +510,17 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         indices=list(indices)
         weights_modif = change_opto_stim(weights, indices)
         print(coh, indices)
-        opt_params = task_pert.get_task_params()
-        opt_params['N_rec'] = 100 # set the number of recurrent units in the model
-        opt_params['name'] = 'opt'
-        opt_params['N_in'] = 4
-        opt_params.update(weights_modif)
-        type(opt_params['dale_ratio']) == np.ndarray and opt_params['dale_ratio'].item() == None
-        Model_opt = Basic(opt_params)
         
-        trials = gen_pol_trials(Model_opt, task_pert, [[0.0, 0.0],[0.2,0.2],[0.4,0.4],[0.6,0.6]], [0,1,2,3])
+        simulator = BasicSimulator(weights=weights_modif , params = {'dt': 10, 'tau': 100})
         
-        keys1 = list(av_stim.keys())
-        for i in range(4):
-            coherences[coh][intensity[i]].append(trials[f'hem{i}stim']['model_output'][249])
+        trials = gen_pol_trials(simulator, task_pert, [[0.0, 0.0],[0.2,0.2],[0.4,0.4],[0.6,0.6]], opto_stim=0.4, sim=True)
+        
+        for i in range(1,5):
+            coherences[coh][intensity[i-1]].append(trials[f'hem{i}stim']['model_output'][249])
             
         #acc = task_pert.accuracy_function(y, model_output, mask)
         #accuracy_opto.append(acc)
 
-        Model_opt.destruct()
-        
 #%%
 repla = coherences
 for i in coherences:
@@ -595,7 +578,39 @@ plt.title(f'average output for opto stim of {stim} cells in {hem}')
 plt.legend()
 
 #%%
-plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12], ['n', 'i25,'])
+coherence_array = coherences
+for i in coherence_array:
+    for j in coherence_array[i]:
+        coherence_array[i][j] = np.array(list(coherence_array[i][j].values()))
+for i in coherence_array:
+    coherence_array[i] = np.array(list(coherence_array[i].values()))
+coherence_array = np.array(list(coherence_array.values()))
+
+#%%
+model_nb = 36
+hem_stim = 'hem1'
+hem_record = 'hem1'
+labels = list(coherences['hem1']['none_00'].keys())
+
+for i in range(4):
+    plt.plot(coherence_array[Hems[hem_stim],:,i,model_nb,Hems[hem_record]], marker='o', label=labels[i])
+
+plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12], ['n', 'i25', 'i50', 'i75', 'i100', 'c25', 'c50', 'c75', 'c100', 'b25', 'b50', 'b75', 'b100'])
+plt.title(f'{file_order[model_nb]}')
+plt.legend()
+
+#%%
+hem_stim = 'hem1'
+hem_record = 'hem1'
+
+labels = list(coherences['hem1']['none_00'].keys())
+data=np.mean(coherences_array_75[Hems[hem_stim],:,:,:,Hems[hem_record]], axis=2)
+for i in range(4):
+    plt.plot(data[:,i], marker='o', label=labels[i])
+plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12], ['n', 'i25', 'i50', 'i75', 'i100', 'c25', 'c50', 'c75', 'c100', 'b25', 'b50', 'b75', 'b100'])
+plt.title(f'mean for sparse model')
+plt.legend()
+
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
 

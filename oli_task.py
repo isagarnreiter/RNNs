@@ -167,9 +167,9 @@ class PerceptualDiscrimination(Task):
         for i in range(len(train_params)):
             if train_params[i]['intensity_0']!=0.0 or train_params[i]['intensity_1']!=0.0:
                 diff1_2.append(round(train_params[i]['intensity_0']-train_params[i]['intensity_1'], 2))
-                if correct_output[i, 249, 0] > 0.8 and correct_output[i,249,1] < 0.8:
+                if correct_output[i, 249, 0] > correct_output[i,249,1]:
                     chosen.append(1)
-                elif correct_output[i, 249, 1] > 0.8 and correct_output[i,249,0] < 0.8:
+                elif correct_output[i, 249, 1] > correct_output[i,249,0]:
                     chosen.append(2)
                 else:
                     chosen.append(0)

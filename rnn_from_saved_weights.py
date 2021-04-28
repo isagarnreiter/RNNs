@@ -35,16 +35,16 @@ tau = 100 # The intrinsic time constant of neural state decay.
 T = 2500 # The trial length.
 N_batch = 50 # The number of trials per training update.
 N_rec = 100 # The number of recurrent units in the network.
-N_in = 4
+N_in = 3
 N_out = 2
 name = 'dale_model' #  Unique name used to determine variable scope for internal use.
 
-model = dict(np.load('IpsiContra_In05_Rec025_Cal20_s0.npz', allow_pickle=True))
+model = dict(np.load('/UserFolder/neur0003/third_set_models/IpsiContra_In05_Rec025_Cal20_s0.npz', allow_pickle=True))
 weights = model['weights'].reshape(1)[0]
-weights_modif = adapt_for_opto(weights, indices)
+#weights_modif = adapt_for_opto(weights)
 
-task_pert = oli_task_perturb.PerceptualDiscrimination(dt = dt, tau = tau, T = T, N_batch = N_batch) # Initialize the task object
-file_network_params = task_pert.get_task_params() # get the params passed in and defined in pd
+task = oli_task.PerceptualDiscrimination(dt = dt, tau = tau, T = T, N_batch = N_batch) # Initialize the task object
+file_network_params = task.get_task_params() # get the params passed in and defined in pd
 file_network_params['N_rec'] = N_rec # set the number of recurrent units in the model
 file_network_params['name'] = name
 file_network_params['N_in'] = N_in
@@ -67,7 +67,7 @@ plot_weights(weights['W_out'])
 #%%
 
 # ---------------------- Test the trained model ---------------------------
-x, y,mask, train_params = task_pert.get_trial_batch() # get pd task inputs and outputs
+x, y,mask, train_params = task.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = fileModel.test(x) # run the model on input x
 
 #%%
@@ -129,43 +129,64 @@ init_state = fileModel.get_weights()['init_state'].reshape(100)
 # init_state = np.repeat(init_state, 50)
 # init_state = init_state.reshape(100, 50).T
 
-a=[ 5.1872785e-08,  1.5997401e-14,  1.4384385e-14]
-
-trial_nb=19
-
 model_state_init = np.insert(model_state, 0, init_state, axis=1)
 model_state_init = np.round(model_state_init, 5)
-PCA_data = np.concatenate(model_state_init, axis=1)
+PCA_data = np.concatenate(model_state_init, axis=0)
 #stdPCA_data = StandardScaler().fit_transform(PCA_data) # no normaisation ??
 
 
 pca_states = PCA(n_components=3)
-PCA_states = pca_states.fit_transform(model_state_init[trial_nb])
+PCA_states = pca_states.fit_transform(PCA_data)
 #PCA_init_state = pca_states.fit_transform(init_state.reshape(1,100))
 
-figure = plt.figure()
+#%%
+figure = plt.figure(figsize=(6,6))
 ax1 = plt.subplot(111) 
 
 ax1 = plt.axes(projection ='3d') 
+ax1.grid(False)
+trial_nb = [0,2,3,11]
+colour = ['blue', 'green', 'orange', 'yellow']
+labels = ['ch1', 'ch2', 'equ', 'no']
+for i in range(len(trial_nb)):
+    start = 251*trial_nb[i]
+    stop = 251*trial_nb[i]+251
+    ax1.plot(PCA_states[start:stop,0], PCA_states[start:stop,1], PCA_states[start:stop,2], c=colour[i], label=labels[i])
+ax1.plot(PCA_states[start,0], PCA_states[start,1], PCA_states[start,2], c='black', marker = 'x')
+ax1.set_xlim(min(PCA_states[:,0]),max(PCA_states[:,0]))
+ax1.set_ylim(min(PCA_states[:,1]),max(PCA_states[:,1]))
+ax1.set_zlim(min(PCA_states[:,2]),max(PCA_states[:,2]))
+ax1.set_xlabel('PC1')
+ax1.set_ylabel('PC2')
+ax1.set_zlabel('PC3')
+ax1.legend(frameon=False, loc='upper left')
+#%%
 
-# ax1.scatter(PCA_states[0:150,0], PCA_states[0:150,1], PCA_states[0:150,2], c='blue', s = 3)
-# ax1.scatter(PCA_states[150:,0], PCA_states[150:,1], PCA_states[150:,2], c='red', s = 3)
-ax1.scatter(PCA_states[0,0], PCA_states[0,1], PCA_states[0,2], c='black', s = 10, marker = 'x')
-ax1.scatter(PCA_states[0:150,0], PCA_states[0:150,1], PCA_states[0:150,2], c='blue', s = 3)
-ax1.scatter(PCA_states[150:,0], PCA_states[150:,1], PCA_states[150:,2], c='red', s = 3)
-print(PCA_states)
-# ax1.set_ylim(-1.5,1.5)
-# ax1.set_xlim(-1.5,1.5)
-# ax1.set_zlim(-1.5, 1.5)
-#plt.legend(('PC1', 'PC2'))
+figure = plt.figure(figsize=(6,6))
+ax1 = plt.subplot(111) 
+trial_nb = [0,2,3,11]
+colour = ['blue', 'green', 'orange', 'yellow']
+labels = ['ch1', 'ch2', 'equ', 'no']
+for i in range(len(trial_nb)):
+    start = 251*trial_nb[i]
+    stop = 251*trial_nb[i]+251
+    ax1.plot(PCA_states[start:stop,0], PCA_states[start:stop,1], c=colour[i], label=labels[i])
+    ax1.plot(PCA_states[start,0], PCA_states[start,1], c='black', marker = 'x')
+
+
+ax1.set_xlim(min(PCA_states[:,0]),max(PCA_states[:,0]))
+ax1.set_ylim(min(PCA_states[:,1]),max(PCA_states[:,1]))
+ax1.set_xlabel('PC1')
+ax1.set_ylabel('PC2')
+ax1.legend(frameon=False, loc='upper right')
 
 #%%
-trial_nb = 0
+trial_nb = 1
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
 
-dt = params['dt']
+dt = 10
 
 fig2, ax = plt.subplots(2,2,figsize=(20,8))
 

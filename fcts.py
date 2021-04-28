@@ -108,9 +108,9 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     return input_connectivity, rec_connectivity, output_connectivity
 
 
-def gen_pol_trials(daleModel, pd, j, k):
+def gen_pol_trials(daleModel, pd, j, opto_stim, sim=False):
     trials = {}
-    
+    k = np.array(range(len(j)))+1
     for i in range(len(j)):
         trials[f'hem{k[i]}stim'] = {}
         params_single_trial = {'intensity_0': j[i][0], 
@@ -122,13 +122,15 @@ def gen_pol_trials(daleModel, pd, j, k):
                                 'go_cue_onset': 1500, 
                                 'go_cue_duration': 25.0, 
                                 'post_go_cue': 125.0,
-                                'intensity_opto': 0.4,
+                                'intensity_opto': opto_stim,
                                 'end_opto':500}
     
         x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
         x, y, mask = np.array([x]), np.array([y]), np.array([mask]) #add dimension to shape of x, y, mask to fit the test() function and the figure format
-
-        model_output, model_state = daleModel.test(x) # run the model on input x
+        if sim==False:
+            model_output, model_state = daleModel.test(x) # run the model on input x
+        elif sim==True:
+            model_output, model_state = daleModel.run_trials(x)
         
         trials[f'hem{k[i]}stim']['x'] = x[0]
         trials[f'hem{k[i]}stim']['y'] = y[0]
