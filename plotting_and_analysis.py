@@ -120,7 +120,7 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     # ax1.set_ylabel('stim in hem 2')
     # figure.savefig(f'/UserFolder/neur0003/stim_pref_second_set/{item[0:-4]}')
 
-third_set.to_pickle('/UserFolder/neur0003/third_set_model.pkl')
+first_set.to_pickle('/UserFolder/neur0003/first_set_model.pkl')
 
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
@@ -247,7 +247,7 @@ file = np.array(sorted(arr_info, key=take_first))
 file = file.reshape(5, int(file.shape[0]/5) , len(columns))
 for i in range(4):
     file[i] = np.array(sorted(file[i], key=take_second))
-file = file.reshape(4, 4, 12, len(columns))
+file = file.reshape(5, 6, int(file.shape[0]/5), len(columns))
 for i in range(4):
     for j in range(4):
         file[i][j] = np.array(sorted(file[i][j], key=take_third))        
@@ -346,7 +346,8 @@ cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label=c.na
 
 
 #%%
-N = 4
+N = 5
+M = 6
 
 fig, axs = plt.subplots(N, N, figsize=(4,6))
 fig.suptitle('number of neurons with a preference for ipsilateral stim')
@@ -412,7 +413,7 @@ n= 40
 
 indices = {0.08:[], 0.10:[], 0.25:[], 0.50:[], 0.75:[], 1.0:[]}
 n_cals = {10:[], 20:[], 30:[], 40:[]}
-for i in range(len(first_set['P_rec'])):
+for i in list(first_set.index):
     if first_set['P_rec'][i] == 0.25:
         indices[first_set['P_rec'][i]].append(i)
         n_cals[first_set['N_cal'][i]].append(i)
@@ -550,23 +551,51 @@ pickle.dump(coherences,f)
 f.close()
 
  #%%
-coherences_hem1_opt = pd.read_pickle('/UserFolder/neur0003/coherences_dict.pkl')
+coherences_hem1_opt = pd.read_pickle('/UserFolder/neur0003/coherences_hem1_dict.pkl')
+coherences_hem2_opt = pd.read_pickle('/UserFolder/neur0003/coherences_hem1_dict.pkl')
+
+coherences = {'hem1':coherences_hem1_opt, 'hem2':coherences_hem2_opt}
 
 file_order = [] #15 still in there, but was removed from coherence dictionary because didn't train
 for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     file_order.append(item)
     
-coh_averages = np.array([])
-for i in coherences:
-    for j in coherences[i]:
-        coh_averages = np.append(coh_averages, np.mean(coherences[i][j], axis=0))
-coh_averages = coh_averages.reshape(13, 4, 2)    
+coh_averages = {'hem1':np.array([]), 'hem2':np.array([])}
+for k in coherences:
+    for i in coherences[k]:
+        for j in coherences[k][i]:
+            coh_averages[k] = np.append(coh_averages[k], np.mean(coherences[k][i][j], axis=0))
+    coh_averages[k] = coh_averages[k].reshape(13, 4, 2)    
 
 #%%
-plt.plot(coh_averages[0,:,:], marker='o')
+
+Hems = {'hem1':0, 'hem2':1}
+Stims = {'ipsi':0, 'contra':1, 'both':2}
+
+ind = [[0,1,2,3,4], [0,5,6,7,8], [0,9,10,11,12]]
+plot_data = np.ones((2,3,5,4))
+for k in range(len(coherences)):
+    for i in range(3):
+        plot_data[:,i,:,0] = coh_averages[hems[k]][ind[i],0,0]
+        plot_data[:,i,:,1] = np.mean(coh_averages[hems[k]][ind[i],1:,0], axis=1)
+        plot_data[:,i,:,2] = coh_averages[hems[k]][ind[i],0,1]
+        plot_data[:,i,:,3] = np.mean(coh_averages[hems[k]][ind[i],1:,1], axis=1)
+        
+
+stim = 'ipsi'
+hem = 'hem1'
+
+labels = ['hem1 no input', 'hem1 input', 'hem2 no input', 'hem2 input']
+for i in range(4):
+    plt.plot(plot_data[Hems[hem], Stims[stim],:,i], marker='o', label=labels[i])
 plt.ylim(-0.05, 1)
+plt.xticks([0,1,2,3,4], labels=[0,25,50,75,100])
+plt.xlabel('% stimulated cells')
+plt.title(f'average output for opto stim of {stim} cells in {hem}')
+plt.legend()
 
-
+#%%
+plt.xticks([0,1,2,3,4,5,6,7,8,9,10,11,12], ['n', 'i25,'])
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
 

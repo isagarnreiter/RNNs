@@ -18,10 +18,10 @@ import sys
 # N_callosal = int(sys.argv[3])
 # seed = int(sys.argv[4])
 
-P_in = 0.75
-P_rec = 0.75
-N_callosal = 10
-seed = 1
+P_in = 0.50
+P_rec = 0.25
+N_callosal = 20
+seed = 15
 
 params = {'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_callosal, 'seed':seed}
 
@@ -67,7 +67,7 @@ losses, initialTime, trainTime = daleModel.train(pd, train_params)
 
 # Test the trained model and save the test batch in a dictionary ---------------------------
 # only first 10 trials are saved because otherwise the file becomes too big
-trials = fcts.gen_pol_trials(daleModel, pd, [[0.0, 0.6], [0.6, 0.0]])
+trials = fcts.gen_pol_trials(daleModel, pd, [[0.0, 0.6], [0.6, 0.0]], [0,1])
 weights = daleModel.get_weights() # Fetch the weights of the network 
 
 
