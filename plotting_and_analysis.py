@@ -62,7 +62,7 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
     trials = dalemodel_test['trials'].reshape(-1)[0]
-    stim_pref = fcts.stim_pref_(trials)
+    stim_pref = stim_pref_(trials)
     
     stim_pref_hem1stim_hem1 = sorted(stim_pref['max_hem1stim'][0:40])
     stim_pref_hem1stim_hem2 = sorted(stim_pref['max_hem1stim'][40:80])
@@ -121,7 +121,7 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     # ax1.set_ylabel('stim in hem 2')
     # figure.savefig(f'/UserFolder/neur0003/stim_pref_second_set/{item[0:-4]}')
 
-first_set.to_pickle('/UserFolder/neur0003/first_set_model.pkl')
+third_set.to_pickle('/UserFolder/neur0003/third_set_model.pkl')
 
 #%%
 #make seperate dataframe with defined number of ipsi preferring cells
@@ -448,7 +448,7 @@ task_pert = oli_task_perturb.PerceptualDiscrimination(dt = 10,
                               T = 2500, 
                               N_batch = 100) # Initialize the task object
 
-n_range = [40,80]
+n_range = [0,40]
  
 #%%
 #create dictionary to compare the output of the models in response to equal stimuli for different levels of optogenetic stimulation
@@ -511,7 +511,7 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         weights_modif = change_opto_stim(weights, indices)
         print(coh, indices)
         
-        simulator = BasicSimulator(weights=weights_modif , params = {'dt': 10, 'tau': 100})
+        simulator = BasicSimulator(weights=weights_modif , params = {'dt': 10, 'tau':100})
         
         trials = gen_pol_trials(simulator, task_pert, [[0.0, 0.0],[0.2,0.2],[0.4,0.4],[0.6,0.6]], opto_stim=0.4, sim=True)
         

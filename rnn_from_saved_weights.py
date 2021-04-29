@@ -122,6 +122,16 @@ ax1.legend()
 ax1.set_xlabel('stim in hem 1')
 ax1.set_ylabel('stim in hem 2')
 
+#%%
+bin_means, bins, frac_choice = task.psychometric_curve(model_output, train_params)
+
+plt.plot(bins, bin_means[0],marker='o', label='choice 1')
+plt.plot(bins, bin_means[1],marker='o', c='orange', label = 'choice 2')
+plt.xlabel('U1-U2')
+plt.legend()
+plt.ylabel('%')
+
+
 #%% 
 #calculate the PCA of the states of the network for a given trial
 #a = model_state[trial_n]
