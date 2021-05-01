@@ -18,6 +18,7 @@ import pandas as pd
 import shutil
 import csv
 import fcts
+import random
 from fcts import count_pref
 import seaborn as sns
 from pylab import text
@@ -441,14 +442,20 @@ fcts.plot_weights(weights['W_out'], cb=False, matrix='out')
 task = oli_task.PerceptualDiscrimination(dt = 10,
                               tau = 100, 
                               T = 2500, 
-                              N_batch = 100) # Initialize the task object
+                              N_batch = 100,
+                              N_in = 4,
+                              N_rec = 100,
+                              N_out = 2) # Initialize the task object
 
 task_pert = oli_task_perturb.PerceptualDiscrimination(dt = 10,
                               tau = 100, 
                               T = 2500, 
-                              N_batch = 100) # Initialize the task object
+                              N_batch = 100,
+                              N_in = 4,
+                              N_rec = 100,
+                              N_out = 2) # Initialize the task object
 
-n_range = [0,40]
+n_range = [40,80]
  
 #%%
 #create dictionary to compare the output of the models in response to equal stimuli for different levels of optogenetic stimulation
@@ -465,7 +472,7 @@ intensity = ['0.0', '0.2','0.4', '0.6']
 for item in os.listdir('/UserFolder/neur0003/third_set_models'):
     
     dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
-    weights = adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
+    weights = fcts.adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
     trials = dalemodel_test['trials'].reshape(1)[0]
     stim_pref_dict = fcts.stim_pref_(trials)
     
@@ -498,7 +505,7 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         arr2 = stim_pref_dict[stim2][n_range[0]:n_range[1]]
         indices = count_pref(arr1, arr2, indices=True)
         if coh[0:4]=='both':
-            indices += count_pref(arr2, arr1, indices=True)
+            indices += fcts.count_pref(arr2, arr1, indices=True)
             random.shuffle(indices)
             
         if n_range == [40,80]:
@@ -508,12 +515,12 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         pourc = int(coh[5:])
         indices = indices[:int(pourc/100*len(indices))]
         indices=list(indices)
-        weights_modif = change_opto_stim(weights, indices)
+        weights_modif = fcts.change_opto_stim(weights, indices)
         print(coh, indices)
         
         simulator = BasicSimulator(weights=weights_modif , params = {'dt': 10, 'tau':100})
         
-        trials = gen_pol_trials(simulator, task_pert, [[0.0, 0.0],[0.2,0.2],[0.4,0.4],[0.6,0.6]], opto_stim=0.4, sim=True)
+        trials = fcts.gen_pol_trials(simulator, task_pert, [[0.0, 0.0],[0.2,0.2],[0.4,0.4],[0.6,0.6]], opto_stim=0.4, sim=True)
         
         for i in range(1,5):
             coherences[coh][intensity[i-1]].append(trials[f'hem{i}stim']['model_output'][249])
@@ -522,17 +529,86 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         #accuracy_opto.append(acc)
 
 #%%
+# find choice of network depending on ratio and total number of cells activated
+# iterations determined by nb_trials per model, with varying number of stimulation of ipsi preferring and contra preferring cells
+# for each model outputs an array (nb_trials*4) with each subarray containing in order:
+# ratio of ipsi to contra preferring cells
+# number of stimulated cells
+# value of output 1 at t = 2500 ms
+# value of output 2 at t = 2500 ms
+
+coherences = {}
+nb_trials = 30
+n_range = [0,40]
+for item in os.listdir('/UserFolder/neur0003/third_set_models'):
+    coherences[item] = np.array([])
+    print(item)
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
+    weights = fcts.adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
+    trials = dalemodel_test['trials'].reshape(1)[0]
+    stim_pref_dict = stim_pref_(trials)
+    
+    arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
+    arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
+    
+    for i in range(nb_trials):
+        indices_contra_pref = fcts.count_pref(arr1, arr2, indices=True)
+        indices_ipsi_pref = fcts.count_pref(arr2, arr1, indices=True)
+        
+        if len(indices_contra_pref) != 0:
+            n = np.random.choice(range(len(indices_contra_pref)))
+        else:
+            n = 0
+        indices_contra_pref = random.sample(indices_contra_pref, n)
+        
+        if len(indices_ipsi_pref) != 0:
+            n = np.random.choice(range(len(indices_ipsi_pref)))
+        else:
+            n = 0
+        indices_ipsi_pref = random.sample(indices_ipsi_pref, n)
+        
+        indices= indices_ipsi_pref + indices_contra_pref
+        weights_modif = fcts.change_opto_stim(weights, indices)
+        simulator = BasicSimulator(weights=weights_modif , params = {'dt': 10, 'tau':100})
+        trials = fcts.gen_pol_trials(simulator, task_pert, [[0.4,0.4]], opto_stim=0.4, sim=True)
+        
+        coherences[item] = np.append(coherences[item], np.array([len(indices_ipsi_pref), len(indices), trials['hem1stim']['model_output'][249][0], trials['hem1stim']['model_output'][249][1]]))
+    
+    coherences[item] = coherences[item].reshape(nb_trials, 4)
+#%%
 repla = coherences
 for i in coherences:
     for j in coherences[i]:
         coherences[i][j] = np.array(coherences[i][j])
-        coherences[i][j] = np.delete(coherences[i][j],15, axis=0)
-        coherences[i][j] = coherences[i][j].reshape(39,2)
 
-f = open("/UserFolder/neur0003/coherences_dict_hem2.pkl","wb")
+f = open("/UserFolder/neur0003/coherences_ratio.pkl","wb")
 pickle.dump(coherences,f)
 f.close()
 
+#%%
+coherences = pd.read_pickle('/UserFolder/neur0003/coherences_ratio.pkl')
+items = list(coherences.keys())
+
+for i in range(len(items)):
+    if int(third_set[third_set['filename']==items[i]]['nb_hem1_ipsi_pref']) == 0 or int(third_set[third_set['filename']==items[i]]['nb_hem1_ipsi_pref']) == 0:
+        coherences.pop(items[i])
+coherences.pop('IpsiContra_In05_Rec025_Cal20_s19.npz')
+#%%
+total_hem1 = np.array(third_set['nb_hem1_ipsi_pref'] + third_set['nb_hem1_contra_pref'])
+norm = colors.Normalize(vmin=0, vmax=total_hem1.max())
+
+fig_ratio,ax = plt.subplots(1,1,figsize=(6,6))
+
+i = 'IpsiContra_In05_Rec025_Cal20_s18.npz'
+ax.scatter(coherences[i][:,0]/coherences[i][:,1], coherences[i][:,2]-coherences[i][:,3], c=coherences[i][:,1], s=20, alpha=0.8)
+            
+ax.set_xlabel('% stimulated ipsi preferring neurons')
+divider = make_axes_locatable(plt.gca())
+ax_cb = divider.new_horizontal(size="5%", pad=0.05)
+fig_ratio.add_axes(ax_cb)
+cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label='total activated cells')
+#ax.set_xlim(-0.04,2.04)
+ax.set_ylabel('<- choice 2 - choice 1 ->')
  #%%
 coherences_hem1_opt = pd.read_pickle('/UserFolder/neur0003/coherences_hem1_dict.pkl')
 coherences_hem2_opt = pd.read_pickle('/UserFolder/neur0003/coherences_hem1_dict.pkl')

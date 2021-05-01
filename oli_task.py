@@ -162,40 +162,28 @@ class PerceptualDiscrimination(Task):
     def psychometric_curve(self, correct_output, train_params):
         """Calculates the percentage of choice 1 made by the model, depending on the coherence between input 0 and 1.'
         --> psychometric curve."""
-  
+        
+
         diff1_2 = []
         chosen = []
         for i in range(len(train_params)):
             if train_params[i]['intensity_0']!=0.0 or train_params[i]['intensity_1']!=0.0:
                 diff1_2.append(round(train_params[i]['intensity_0']-train_params[i]['intensity_1'], 2))
                 if correct_output[i, 249, 0] > correct_output[i,249,1]:
-                    chosen.append(1)
-                elif correct_output[i, 249, 1] > correct_output[i,249,0]:
-                    chosen.append(2)
-                else:
                     chosen.append(0)
-                    
+                elif correct_output[i, 249, 1] > correct_output[i,249,0]:
+                    chosen.append(1)
+
                     
         bins = np.array([-0.6, -0.4, -0.2,  0. ,  0.2,  0.4,  0.6])
         digitized = np.digitize(diff1_2, bins)
         diff1_2 = np.array(diff1_2)
-        
-        chosen_proc = [[],[]]
-        bin_means = [[],[]]
-        frac_choice = [[],[]]
-        x = [1,2]
-        for j in range(2):
-            for i in range(len(chosen)):
-                if chosen[i]==x[j]:
-                    chosen_proc[j].append(1)
-                else:
-                    chosen_proc[j].append(0)
-            
-            chosen_proc[j] = np.array(chosen_proc[j])
-            bin_means[j] = np.array([chosen_proc[j][digitized == k].mean() for k in range(1, len(bins)+1)])
-            bin_means[j] = bin_means[j]*100
-        
-            frac_choice[j] = len(chosen_proc[j][chosen_proc[j]==1])/len(chosen_proc[j])
-        
+
+        chosen = np.array(chosen)
+        bin_means = np.array([chosen[digitized == k].mean() for k in range(1, len(bins)+1)])
+        bin_means = bin_means*100
+    
+        frac_choice = len(chosen[chosen==0])/len(chosen)
+    
         return bin_means, bins, frac_choice
                 
