@@ -8,33 +8,41 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 import numpy as np
 
-def plot_weights(weights, xlabel="", ylabel="", cb = False, matrix = ''):
+def plot_weights(weights, plot = ""):
     cmap = plt.set_cmap('RdBu_r')
-    if matrix == 'in':
-        f = plt.figure(figsize=(2,6))
-        ax1 = plt.subplot(111)
-        ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
-        ax1.set_yticks([0, 20, 40, 60, 80])
-        ax1.set_xticks([0,1,2])
-        ax1.set_xticklabels([1,2,3])
-    if matrix == 'out':
-        f = plt.figure(figsize=(6,2))
-        ax1 = plt.subplot(111)
-        ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
-        ax1.set_xticks([0, 20, 40, 60, 80])
-        ax1.set_yticks([0,1])
-        ax1.set_yticklabels([1,2])
-    if matrix == 'rec':
-        f = plt.figure(figsize=(6,6))
-        ax1 = plt.subplot(111)
-        ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5))
-        ax1.set_xticks([0, 20, 40, 60, 80])
-        ax1.set_xticks([0, 20, 40, 60, 80])
-    if cb==True:
-        plt.colorbar(ax1.matshow(weights, norm=Normalize(vmin=-.5, vmax=.5)))
-    ax1.set_title(xlabel, fontsize=12)
-    ax1.set_ylabel(ylabel, fontsize=12)
-    plt.tight_layout()
+    
+    if plot == 'weights':
+        data = ['W_rec', 'W_in', 'W_out']
+    if plot == 'connectivity':
+        data = ['rec_connectivity', 'input_connectivity', 'output_connectivity']
+        
+    fig = plt.figure(figsize=(8, 8))
+    gs = fig.add_gridspec(2, 2,  width_ratios=(10,1), height_ratios=(10,1),
+                          left=0.2, right=0.8, bottom=0.2, top=0.8,
+                          wspace=0.05, hspace=0.05)
+    
+    w_rec = fig.add_subplot(gs[0, 0])
+    w_in = fig.add_subplot(gs[0, 1], sharey=w_rec)
+    w_out = fig.add_subplot(gs[1, 0])
+
+    w_rec.matshow(weights[data[0]], norm=Normalize(vmin=-.5, vmax=.5))
+    w_in.matshow(weights[data[1]], norm=Normalize(vmin=-.5, vmax=.5), aspect='auto')
+    w_out.matshow(weights[data[2]], norm=Normalize(vmin=-.5, vmax=.5), aspect='auto')
+
+    w_rec.set_yticks([0, 20, 40, 60, 80])
+    w_rec.set_xticks([0, 20, 40, 60, 80])
+    
+    w_in.set_xticks([0,1,2])
+    w_in.set_xticklabels([1,2,3])
+    w_out.set_yticks([0,1])
+    w_out.set_yticklabels([1,2])
+    
+    w_out.tick_params(top = False, labeltop = False, bottom=False)
+    w_in.tick_params(left = False, labelleft = False, bottom=False)
+    w_rec.tick_params(bottom=False)
+    
+    w_rec.set_title('From', fontsize=12)
+    w_rec.set_ylabel('To', fontsize=12)
     
     
     

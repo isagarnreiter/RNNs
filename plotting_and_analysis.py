@@ -271,7 +271,7 @@ plt.tight_layout()
 
 #check relation between different parameters and if different associations are more likely
 #%%
-#make average fraction of ipsi preferring cells depending on P_rec and P_in
+#plot average fraction of ipsi preferring cells depending on P_rec and P_in
 
 P_rec = [0.08, 0.1, 0.25, 0.5, 0.75, 1.0]
 P_in = [0.1, 0.25, 0.5, 0.75, 1.0]
@@ -279,7 +279,7 @@ av_fraction = np.array([])
 for i in P_rec:
     for j in P_in:
         index = []
-        for k in range(len(first_set['P_rec'])):
+        for k in list(first_set.index):
             if first_set['P_rec'][k] == i and first_set['P_in'][k] == j:
                 index.append(k)
         frac = np.mean(first_set['fraction_ipsi_pref'][index])
@@ -335,10 +335,32 @@ ax_cb = divider.new_horizontal(size="5%", pad=0.05)
 figure4.add_axes(ax_cb)
 cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label=c.name)
 
+#%%
+columns = file.columns[1:]
+mean_resp = np.mean(file[list(columns[6:10])], axis=1)
+
+figure = plt.figure(figsize=(12,12))
+
+x = {'P_in':np.array(file['P_in']), 'P_rec':np.array(file['P_rec']), 'N_cal':np.array(file['N_cal'])}
+y = {'Total active neurons':np.array(file['total_active']), 'fraction_ipsi_preferring neurons':np.array(file['fraction_ipsi_pref']), 'mean_activity':mean_resp}
+
+k=1
+for j in range(3):
+    for i in range(3):
+        ax = plt.subplot(3,3,k)
+        sns.boxplot(x[list(x.keys())[i]],y[list(y.keys())[j]], fliersize=4, width=.7, flierprops=dict(marker='o'), linewidth=2, color='white')
+        k+=1
+        #ax[j,0].set_ylabel(list(y.keys())[j], size=12)
+        #ax[2,i].set_xlabel(list(x.keys())[i], size=12)
+        
+# plt.xlabel('P_in')
+# plt.ylabel('fraction of ipsi preferring neurons')
+# plt.ylim(-0.02,1.02)
 
 #%%
 N = 5
 M = 6
+
 
 fig, axs = plt.subplots(N, N, figsize=(4,6))
 fig.suptitle('number of neurons with a preference for ipsilateral stim')
@@ -443,7 +465,7 @@ task = oli_task.PerceptualDiscrimination(dt = 10,
                               tau = 100, 
                               T = 2500, 
                               N_batch = 100,
-                              N_in = 4,
+                              N_in = 3,
                               N_rec = 100,
                               N_out = 2) # Initialize the task object
 
@@ -532,7 +554,7 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
 # find choice of network depending on ratio and total number of cells activated
 # iterations determined by nb_trials per model, with varying number of stimulation of ipsi preferring and contra preferring cells
 # for each model outputs an array (nb_trials*4) with each subarray containing in order:
-# ratio of ipsi to contra preferring cells
+# number of stimulated cells that are ipsi preferring
 # number of stimulated cells
 # value of output 1 at t = 2500 ms
 # value of output 2 at t = 2500 ms
@@ -556,13 +578,13 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models'):
         indices_ipsi_pref = fcts.count_pref(arr2, arr1, indices=True)
         
         if len(indices_contra_pref) != 0:
-            n = np.random.choice(range(len(indices_contra_pref)))
+            n = np.random.choice(range(len(indices_contra_pref)+1))
         else:
             n = 0
         indices_contra_pref = random.sample(indices_contra_pref, n)
         
         if len(indices_ipsi_pref) != 0:
-            n = np.random.choice(range(len(indices_ipsi_pref)))
+            n = np.random.choice(range(len(indices_ipsi_pref)+1))
         else:
             n = 0
         indices_ipsi_pref = random.sample(indices_ipsi_pref, n)
@@ -599,17 +621,48 @@ norm = colors.Normalize(vmin=0, vmax=total_hem1.max())
 
 fig_ratio,ax = plt.subplots(1,1,figsize=(6,6))
 
-i = 'IpsiContra_In05_Rec025_Cal20_s18.npz'
-ax.scatter(coherences[i][:,0]/coherences[i][:,1], coherences[i][:,2]-coherences[i][:,3], c=coherences[i][:,1], s=20, alpha=0.8)
-            
-ax.set_xlabel('% stimulated ipsi preferring neurons')
+for i in list(coherences.keys()):
+    if i[14] == '7' or i[14]=='5':
+        ratio = coherences[i][:,0]/(coherences[i][:,1]-coherences[i][:,0])
+        percent = (coherences[i][:,0]/coherences[i][:,1])*100
+        percent[np.isnan(percent)] = 0
+        ax.scatter(ratio, coherences[i][:,2]-coherences[i][:,3], s=20, alpha=0.8)
+
+ax.set_xlabel('ratio ipsi/contra')
 divider = make_axes_locatable(plt.gca())
 ax_cb = divider.new_horizontal(size="5%", pad=0.05)
 fig_ratio.add_axes(ax_cb)
 cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label='total activated cells')
 #ax.set_xlim(-0.04,2.04)
 ax.set_ylabel('<- choice 2 - choice 1 ->')
- #%%
+#%%
+bins = np.linspace(0,1,11)
+
+fig_ratio_means,ax = plt.subplots(1,1,figsize=(6,6))
+
+mean_all_models = pd.DataFrame()
+
+for i in list(coherences.keys()): 
+    if i[14]=='7':
+        percent = (coherences[i][:,0]/coherences[i][:,1])
+        percent[np.isnan(percent)] = 0
+        
+        choice = coherences[i][:,2]-coherences[i][:,3]
+        dig = np.digitize(percent, bins)
+        bin_means = np.array([choice[dig == k].mean() for k in range(1, len(bins)+1)])
+        bin_means = pd.Series(bin_means)
+        mean_all_models[i] = bin_means
+        bin_means = bin_means.drop(bin_means[np.isnan(bin_means)].index)
+        
+        ax.plot(bin_means)
+
+ax.plot(mean_all_models.mean(axis=1), c='black', linewidth=3)
+ax.set_xticks([0,2,4,6,8,10])
+ax.set_xticklabels([0,20,40,60,80,100])
+ax.set_xlabel('% stimulated ipsi preferring cells')
+ax.set_title('dense models')
+
+#%% 
 coherences_hem1_opt = pd.read_pickle('/UserFolder/neur0003/coherences_hem1_dict.pkl')
 coherences_hem2_opt = pd.read_pickle('/UserFolder/neur0003/coherences_hem1_dict.pkl')
 
@@ -663,6 +716,8 @@ for i in coherence_array:
 coherence_array = np.array(list(coherence_array.values()))
 
 #%%
+#relative amplitude for a single model depending on the target cell population
+
 model_nb = 36
 hem_stim = 'hem1'
 hem_record = 'hem1'
@@ -676,6 +731,8 @@ plt.title(f'{file_order[model_nb]}')
 plt.legend()
 
 #%%
+#mean for all models with stim and record hemisphere
+
 hem_stim = 'hem1'
 hem_record = 'hem1'
 
