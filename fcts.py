@@ -160,7 +160,6 @@ def count_pref(array1, array2, indices=False):
     else:
         return n_pref
 
-
 def stim_pref_(trials):
     stim_pref_dict = {}
     key = list(trials.keys())

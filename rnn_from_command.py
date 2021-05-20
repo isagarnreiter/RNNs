@@ -21,7 +21,7 @@ import sys
 P_in = 0.50
 P_rec = 0.25
 N_callosal = 20
-seed = 15
+seed = i
 
 params = {'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_callosal, 'seed':seed}
 
@@ -34,7 +34,10 @@ np.random.seed(seed)
 pd = PerceptualDiscrimination(dt = 10, # The simulation timestep
                               tau = 100, # The intrinsic time constant of neural state decay.
                               T = 2500, # The trial length, 
-                              N_batch = 50) # Initialize the task object
+                              N_batch = 50,
+                              N_in = 3,
+                              N_rec = 100,
+                              N_out = 2) # Initialize the task object
 
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
 dale_network_params['name'] = 'dale_network'

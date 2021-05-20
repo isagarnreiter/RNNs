@@ -170,19 +170,19 @@ class PerceptualDiscrimination(Task):
             if train_params[i]['intensity_0']!=0.0 or train_params[i]['intensity_1']!=0.0:
                 diff1_2.append(round(train_params[i]['intensity_0']-train_params[i]['intensity_1'], 2))
                 if correct_output[i, 249, 0] > correct_output[i,249,1]:
-                    chosen.append(0)
-                elif correct_output[i, 249, 1] > correct_output[i,249,0]:
                     chosen.append(1)
+                elif correct_output[i, 249, 1] > correct_output[i,249,0]:
+                    chosen.append(0)
 
-                    
+                   
         bins = np.array([-0.6, -0.4, -0.2,  0. ,  0.2,  0.4,  0.6])
         digitized = np.digitize(diff1_2, bins)
         diff1_2 = np.array(diff1_2)
-
+        
         chosen = np.array(chosen)
         bin_means = np.array([chosen[digitized == k].mean() for k in range(1, len(bins)+1)])
         bin_means = bin_means*100
-    
+        
         frac_choice = len(chosen[chosen==0])/len(chosen)
     
         return bin_means, bins, frac_choice

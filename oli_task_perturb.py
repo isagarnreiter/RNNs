@@ -25,13 +25,13 @@ class PerceptualDiscrimination(Task):
         direction (int, optional): Either 0 or 1, indicates which input channel will have higher mean input. By default None.
     """
 
-    def __init__(self, dt, tau, T, N_batch, N_in, N_rec, N_out):
+    def __init__(self, dt, tau, T, N_batch, N_in, N_rec, N_out, opto=True):
         super(PerceptualDiscrimination,self).__init__(2, 2, dt, tau, T, N_batch)
         
         self.N_in = N_in
         self.N_rec = N_rec
         self.N_out = N_out
-
+        self.opto = opto
         self.lo = 0.0 # Low value for one hot encoding
 
         self.hi = 1.0 # High value for one hot encoding
@@ -71,8 +71,10 @@ class PerceptualDiscrimination(Task):
         params['go_cue_onset'] = 1500
         params['go_cue_duration'] = self.T/100
         params['post_go_cue'] = self.T / 20
-
-        params['intensity_opto'] = 0.6
+        if self.opto == True:
+            params['intensity_opto'] = 0.6
+        elif self.opto == False:
+            params['intensity_opto'] = 0.0
         params['end_opto'] = 500
         params['N_in'] = 4
         

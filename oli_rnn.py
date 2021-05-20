@@ -5,7 +5,7 @@ Created on Fri Nov 13 20:49:12 2020
 @author: Isabelle
 """
 
-from oli_task import PerceptualDiscrimination
+from oli_task_perturb import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
 
 import tensorflow as tf
@@ -19,8 +19,9 @@ from scipy.stats import norm
 
 import fcts
 %matplotlib inline
-seed=2020
+seed=18
 
+import pandas as pa
 tf.compat.v2.random.set_seed(seed)
 random.seed(seed)
 np.random.seed(seed)
@@ -30,21 +31,27 @@ np.random.seed(seed)
 
 # ---------------------- Set up a basic model ---------------------------
 
-params = fcts.initialise_params('dale_network', 100)
+params = fcts.initialise_params('dale_network', 50)
 
 pd = PerceptualDiscrimination(dt = params['dt'],
                               tau = params['tau'], 
                               T = params['T'], 
-                              N_batch = params['N_batch']) # Initialize the task object
+                              N_batch = params['N_batch'],
+                              N_in=4,
+                              N_rec=100,
+                              N_out=2,
+                              opto = True) # Initialize the task object
 
 
 dale_network_params = pd.get_task_params() # get the params passed in and defined in pd
 dale_network_params['N_rec'] = params['N_rec'] # set the number of recurrent units in the model
 dale_network_params['name'] = params['Name']
-dale_network_params['N_in'] = params['N_in']
+dale_network_params['N_in'] = 4
 dale_network_params['N_out'] = params['N_out']
-dale_network_params['dale_ratio'] =0.8
+dale_network_params['dale_ratio'] = 0.8
+dale_network_params['rec_noise'] = 0.02
 
+params['N_in'] = 4
 #=============================================================================
 #define connectivity of the network
 #the initial achitecture is predefined in the function initialise_connectivity.
@@ -52,8 +59,8 @@ dale_network_params['dale_ratio'] =0.8
 #N_callosal corresponds to the number of neurons with callosal projections.
 
 N_callosal = 20
-P_in = 1.0
-P_rec = 1.0
+P_in = 0.5
+P_rec = 0.5
 P_out = 1.0
 in_connect, rec_connect, out_connect, = fcts.initialise_connectivity(params, N_callosal, P_in, P_rec, P_out)
 
@@ -67,26 +74,12 @@ daleModel = Basic(dale_network_params)
 
 #%%
 
-figure = plt.figure()
-ax1 = plt.subplot(111) 
-
-ax1 = plt.axes(projection ='3d')
-ax1.scatter(P_in, P_rec, P_out)
-ax1.set_xlabel('P_in')
-ax1.set_ylabel('P_rec')
-ax1.set_zlabel('P_out')
-ax1.set_xlim(0,1)
-ax1.set_ylim(0,1)
-ax1.set_zlim(0,1)
-
-#%%
-
 train_params = {}
 train_params['training_iters'] = 100000 # number of iterations to train for Default: 50000
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
 
 # ---------------------- Train a basic model ---------------------------
-losses, initialTime, trainTime = daleModel.train(pd, train_params) 
+losses, initialTime, trainTime = daleModel.train(pd, train_params)
 
 fig1= plt.figure()
 plt.plot(losses)
@@ -96,26 +89,44 @@ plt.xticks([0, 20, 40, 60, 80, 100], labels=[0, 20000, 40000, 60000, 80000, 1000
 plt.yticks([0, 0.05, 0.1, .15])
 #%%
 
+f = open("file.pkl","wb")
+pickle.dump(Tloss,f)
+f.close()
+
+#%%
+#plot of losses
+Tloss_load = pa.read_pickle('file.pkl')
+
+T_loss_array = np.array(Tloss_load.values())
+T_loss_SEM = np.std(T_loss_array, axis=1)/np.sqrt(T_loss_array.shape[1])
+T_loss_mean = np.mean(T_loss_array, axis=1)
+
+x=np.linspace()
+
+plt.errorbar(x, T_loss_mean, yerr=T_loss_SEM, alpha=0.2)
+plt.plot(x, T_loss_mean)
+
+#%%
 # ---------------------- Test the trained model ---------------------------
 x, y,mask, train_params = pd.get_trial_batch() # get pd task inputs and outputs
 model_output, model_state = daleModel.test(x) # run the model on input x
+
 #%%
 
 bin_means, bins, frac_choice = pd.psychometric_curve(model_output, train_params)
 
-plt.plot(bins, bin_means[0],marker='o', label='choice 1')
-plt.plot(bins, bin_means[1],marker='o', c='orange', label = 'choice 2')
-plt.xlabel('U1-U2')
+plt.plot(bins, bin_means,marker='o', label='choice 1')
+plt.xlabel('coherence')
 plt.legend()
 plt.ylabel('%')
 #%%
 # ---------------------- Plot the results ---------------------------
-trial_nb = 38
+trial_nb = 4
 for i in range(len(mask[trial_nb])):
     if mask[trial_nb][i][0] == 0:
         y[trial_nb][i] =+ np.nan
 
-dt = params['dt']
+dt = 10
 
 fig2, ax = plt.subplots(2,2,figsize=(20,8))
 
@@ -124,7 +135,7 @@ zipp = [x,y,model_state, model_output]
 titles = ['Input', 'Target Output', 'States', 'Output']
 for i in range(2):
     for j in range(2):
-        ax[i,j].plot(range(0, len(zipp[z][0,:,:])*dt,dt), zipp[z][trial_nb,:,:])
+        ax[i,j].plot(range(0, len(zipp[z][0,:,:])*dt,dt), zipp[z][trial_nb,:,3], linewidth=3, c='red')
         ax[i,j].set_title(titles[z], fontsize=16)
         ax[i,j].set_ylim(-0.1,1.1)
         ax[i,j].set_yticks([0,1])
@@ -181,14 +192,10 @@ ax1.set_ylabel('stim in hem 2')
 
 weights = daleModel.get_weights()
 #%%
-fcts.plot_weights(weights['W_rec'],  
-            xlabel = 'From', 
-            ylabel = 'To', matrix='rec',cb=True)
+fcts.plot_weights(weights, plot='weights')
+plt.colorbar(w_rec.matshow(weights['w_rec'], norm=Normalize(vmin=-.5, vmax=.5)))
 
-fcts.plot_weights(weights['W_in'], matrix='in')
-fcts.plot_weights(weights['W_out'], matrix='out')
-
-# daleModel.save("weights/model_example_write_up")
+daleModel.save("weights/model_example_write_up_partial_connectivity_5")
 
 #%%
 #trying to fit a lognormal curve to the distriubtion of weights
@@ -238,7 +245,4 @@ plt.plot(x,y, 'k', color='coral')
 
 #%%
 daleModel.destruct()
-
-
-
 
