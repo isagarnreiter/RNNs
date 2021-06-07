@@ -5,8 +5,8 @@ Created on Fri Nov 13 20:49:12 2020
 @author: Isabelle
 """
 
-from oli_task import PerceptualDiscrimination
 from psychrnn.backend.models.basic import Basic
+from oli_task import PerceptualDiscrimination
 import tensorflow as tf
 import numpy as np
 import random
@@ -18,10 +18,10 @@ import sys
 # N_callosal = int(sys.argv[3])
 # seed = int(sys.argv[4])
 
-P_in = 0.50
-P_rec = 0.25
-N_callosal = 20
-seed = i
+P_in = 0.1
+P_rec = 1.0
+N_callosal = 30
+seed = 5
 
 params = {'P_in':P_in, 'P_rec':P_rec, 'N_cal':N_callosal, 'seed':seed}
 
@@ -62,7 +62,7 @@ daleModel = Basic(dale_network_params)
 
 # Initiate training parameters ---------------------------
 train_params = {}
-train_params['training_iters'] = 200000 # number of iterations to train for Default: 50000
+train_params['training_iters'] = 100000 # number of iterations to train for Default: 50000
 train_params['verbosity'] = True # If true, prints information as training progresses. Default: True
 
 # Train a basic model ---------------------------

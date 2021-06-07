@@ -45,10 +45,10 @@ file_network_params['N_rec'] = N_rec # set the number of recurrent units in the 
 file_network_params['name'] = name
 file_network_params['N_in'] = N_in
 file_network_params['N_out'] = N_out
-file_network_params['rec_noise'] = 0.0
+file_network_params['rec_noise'] = 0.02
 #file_network_params.update(weights)
 #load weights 
-weights = dict(np.load('IpsiContra_In075_Rec10_Cal20_s15.npz', allow_pickle = True))
+weights = dict(np.load('third_set_models/IpsiContra_In075_Rec10_Cal20_s15.npz', allow_pickle = True))
 weights = weights['weights'].reshape(1)[0]
 weights = fcts.adapt_for_opto(weights)
 weights = fcts.change_opto_stim(weights, ipsi_pref)
@@ -109,7 +109,6 @@ model_state = np.transpose(model_state.reshape(av, 50, 250, 100), (1,0,2,3))
 #%% 
 #calculate the PCA of the states of the network for multiple trials
 #get average trajectory for trials with the same parameters
-av=10
 init_state = fileModel.get_weights()['init_state'].reshape(100)
 model_state_init = np.insert(model_state, 0, init_state, axis=2)
 PCA_data = np.concatenate(model_state_init, axis=0)
@@ -133,44 +132,76 @@ ax1 = plt.subplot(111)
 
 ax1 = plt.axes(projection ='3d') 
 ax1.grid(False)
-trial_nb = [47,21,49,43]
-colour = ['blue', 'green', 'orange', 'yellow']
-labels = ['ch1', 'ch2', 'equ', 'no']
-ax1.plot(PCA_states[trial_nb[0],0,0], PCA_states[trial_nb[0],0,1], PCA_states[trial_nb[0],0,2], c='black', marker = 'x')
-for i in range(len(trial_nb)):
-    ax1.plot(PCA_states[trial_nb[i],:,0], PCA_states[trial_nb[i],:,1], PCA_states[trial_nb[i],:,2], c=colour[i], label=labels[i])
-ax1.set_xlim(min(PCA_states[:,:,0].flatten()),max(PCA_states[:,:,0].flatten()))
-ax1.set_ylim(min(PCA_states[:,:,1].flatten()),max(PCA_states[:,:,1].flatten()))
-ax1.set_zlim(min(PCA_states[:,:,2].flatten()),max(PCA_states[:,:,2].flatten()))
-ax1.set_xlabel('PC1')
-ax1.set_ylabel('PC2')
-ax1.set_zlabel('PC3')
-ax1.legend(frameon=False, loc='upper left')
-#%%
-#plot the first two principal components
 
-figure = plt.figure(figsize=(5,5))
-ax1 = plt.subplot(111) 
-labels = {'-100':49, '-66':46, '-33':34, '0':48, '33':41, '66':22, '100':40}
+labels = {'-100':48, '-66':44, '-33':38, '0':47, '33':45, '66':49, '100':23}
 cmap = cm.get_cmap('RdYlBu')
 rgba = cmap(np.linspace(0,1,7))
 keys = list(labels.keys())
 ind = [0,6]
 for i in ind:
-    ax1.plot(PCA_states[labels[keys[i]],:,0], PCA_states[labels[keys[i]],:,1], c=rgba[i], label=keys[i])
+    ax1.plot(PCA_states[labels[keys[i]],0,0], PCA_states[labels[keys[i]],0,2], PCA_states[labels[keys[i]],0,1], c='black', marker = 'x')
+    ax1.plot(PCA_states[labels[keys[i]],0:51,0], PCA_states[labels[keys[i]],0:51,2], PCA_states[labels[keys[i]],0:51,1], linestyle='dashed', c=rgba[i])
+    ax1.plot(PCA_states[labels[keys[i]],51:151,0], PCA_states[labels[keys[i]],51:151,2], PCA_states[labels[keys[i]],51:151,1], linestyle='solid', c=rgba[i], label=keys[i])
+    ax1.plot(PCA_states[labels[keys[i]],151:,0], PCA_states[labels[keys[i]],151:,2], PCA_states[labels[keys[i]],151:,1], linestyle='dashdot', c=rgba[i])
+
+
+ax1.plot(PCA_states[labels[keys[3]],0:51,0], PCA_states[labels[keys[3]],0:51,2], PCA_states[labels[keys[i]],0:51,1], linestyle='dashed', c='grey')
+ax1.plot(PCA_states[labels[keys[3]],51:151,0], PCA_states[labels[keys[3]],51:151,2], PCA_states[labels[keys[i]],51:151,1], linestyle='solid', c='grey', label=keys[3])
+ax1.plot(PCA_states[labels[keys[3]],151:,0], PCA_states[labels[keys[3]],151:,2], PCA_states[labels[keys[i]],151:,1], linestyle='dashdot', c='grey')
+
+# ax1.plot(opto_states[32,0:51,0], opto_states[32,0:51,2], opto_states[32,0:51,1], linestyle='dashed', c='darkorange')
+# ax1.plot(opto_states[32,51:151,0], opto_states[32,51:151,2], opto_states[32,51:151,1], linestyle='solid', c='darkorange', label='ipsi stim')
+# ax1.plot(opto_states[32,151:,0], opto_states[32,151:,2], opto_states[32,151:,1], linestyle='dashdot', c='darkorange')
+
+# ax1.plot(contra_stim[23,0:51,0], contra_stim[23,0:51,2], contra_stim[23,0:51,1], linestyle='dashed', c='dodgerblue')
+# ax1.plot(contra_stim[23,51:151,0], contra_stim[23,51:151,2], contra_stim[23,51:151,1], linestyle='solid', c='dodgerblue', label='contra stim')
+# ax1.plot(contra_stim[23,151:,0], contra_stim[23,151:,2], contra_stim[23,151:,1], linestyle='dashdot', c='dodgerblue')
+
+
+# ax1.set_xlim(min(PCA_states[:,:,0].flatten()),max(PCA_states[:,:,0].flatten()))
+# ax1.set_ylim(min(PCA_states[:,:,1].flatten()),max(PCA_states[:,:,1].flatten()))
+# ax1.set_zlim(min(PCA_states[:,:,2].flatten()),max(PCA_states[:,:,2].flatten()))
+ax1.set_xlabel('PC1')
+ax1.set_ylabel('PC3')
+ax1.set_zlabel('PC2')
+ax1.legend(frameon=False, loc='upper left')
+#%%
+#plot the first two principal components
+
+figure = plt.figure(figsize=(4,4))
+for pos in ['right', 'top']:
+    plt.gca().spines[pos].set_visible(False)
+ax1 = plt.subplot(111) 
+labels = {'-100':48, '-66':44, '-33':38, '0':47, '33':45, '66':49, '100':23}
+cmap = cm.get_cmap('RdYlBu')
+rgba = cmap(np.linspace(0,1,7))
+keys = list(labels.keys())
+ind = [0,6]
+for i in ind:
     ax1.plot(PCA_states[labels[keys[i]],0,0], PCA_states[labels[keys[i]],0,1], c='black', marker = 'x')
-    ax1.plot(PCA_states[labels[keys[i]],51,0], PCA_states[labels[keys[i]],51,1], c=rgba[i], marker = 'o', markersize=4)
-    ax1.plot(PCA_states[labels[keys[i]],151,0], PCA_states[labels[keys[i]],151,1], c=rgba[i], marker = 'o', markersize=4)
 
-ax1.plot(PCA_states[labels[keys[3]],:,0], PCA_states[labels[keys[3]],:,1], c='grey', label='0')
+    ax1.plot(PCA_states[labels[keys[i]],0:51,0], PCA_states[labels[keys[i]],0:51,1], linestyle='dashed', c=rgba[i])
+    ax1.plot(PCA_states[labels[keys[i]],51:151,0], PCA_states[labels[keys[i]],51:151,1], linestyle='solid', c=rgba[i], label=keys[i])
+    ax1.plot(PCA_states[labels[keys[i]],151:,0], PCA_states[labels[keys[i]],151:,1], linestyle='dashdot', c=rgba[i])
 
-ax1.plot(opto_states[32,:,0], opto_states[32,:,1], c='black', label='opto')
 
-ax1.set_xlim(min(PCA_states[:,:,0].flatten())-0.05,max(PCA_states[:,:,0].flatten())+0.05)
-ax1.set_ylim(min(PCA_states[:,:,1].flatten())-0.05,max(PCA_states[:,:,1].flatten())+0.05)
+ax1.plot(PCA_states[labels[keys[3]],0:51,0], PCA_states[labels[keys[3]],0:51,1], linestyle='dashed', c='grey')
+ax1.plot(PCA_states[labels[keys[3]],51:151,0], PCA_states[labels[keys[3]],51:151,1], linestyle='solid', c='grey', label=keys[3])
+ax1.plot(PCA_states[labels[keys[3]],151:,0], PCA_states[labels[keys[3]],151:,1], linestyle='dashdot', c='grey')
+
+ax1.plot(opto_states[15,0:51,0], opto_states[15,0:51,1], linestyle='dashed', c='darkorange')
+ax1.plot(opto_states[15,51:151,0], opto_states[15,51:151,1], linestyle='solid', c='darkorange', label='ipsi stim')
+ax1.plot(opto_states[15,151:,0], opto_states[15,151:,1], linestyle='dashdot', c='darkorange')
+
+ax1.plot(contra_stim[23,0:51,0], contra_stim[23,0:51,1], linestyle='dashed', c='dodgerblue')
+ax1.plot(contra_stim[23,51:151,0], contra_stim[23,51:151,1], linestyle='solid', c='dodgerblue', label='contra stim')
+ax1.plot(contra_stim[23,151:,0], contra_stim[23,151:,1], linestyle='dashdot', c='dodgerblue')
+
+# ax1.set_xlim(min(PCA_states[:,:,0].flatten())-0.05,max(PCA_states[:,:,0].flatten())+0.05)
+# ax1.set_ylim(min(PCA_states[:,:,1].flatten())-0.05,max(PCA_states[:,:,1].flatten())+0.05)
 ax1.set_xlabel('PC1')
 ax1.set_ylabel('PC2')
-ax1.legend(frameon=False, loc='upper right', fontsize=9)
+ax1.legend(frameon=False, loc='lower right', fontsize=9)
 
 #%%
 #test network on batch of random trials
@@ -182,7 +213,7 @@ model_output, model_state = fileModel.test(x) # run the model on input x
 #generate a single test trial
 
 #initialise parameters manually
-params_single_trial = {'intensity_0': 0.2, 
+params_single_trial = {'intensity_0': 0.4, 
                        'intensity_1': 0.4, 
                        'random_output': 1, 
                        'stim_noise': 0.1, 
@@ -215,7 +246,7 @@ plt.ylim(-5,105)
 
 
 #%%
-trial_nb = 0
+trial_nb = 23
 for i in range(len(mask[0])):
     if mask[0,i][0] == 0:
         y[0,i] =+ np.nan
@@ -251,7 +282,7 @@ ax[1,0].set_yticklabels([-0.2, 0, 0.2, 0.4, 0.6], fontsize=12)
 
 fig2.tight_layout()
 
-#%% 
+a#%% 
 #plot the relationship between reponse to stim 1 and stim2 for each neurons
 unity_line = [-1, 0, 1]
 

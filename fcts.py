@@ -33,9 +33,9 @@ def plot_weights(weights, plot = ""):
     w_rec.set_xticks([0, 20, 40, 60, 80])
     
     w_in.set_xticks([0,1,2])
-    w_in.set_xticklabels([1,2,3])
+    w_in.set_xticklabels(['I1','I2','G'])
     w_out.set_yticks([0,1])
-    w_out.set_yticklabels([1,2])
+    w_out.set_yticklabels(['O1','O2'])
     
     w_out.tick_params(top = False, labeltop = False, bottom=False)
     w_in.tick_params(left = False, labelleft = False, bottom=False)
