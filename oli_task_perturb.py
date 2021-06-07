@@ -10,22 +10,29 @@ from __future__ import division
 from psychrnn.tasks.task import Task
 import numpy as np
 
-class PerceptualDiscrimination(Task):
-    """Two alternative forced choice (2AFC) binary discrimination task. 
-    On each trial the network receives two simultaneous noisy inputs into each of two input channels. The network must determine which channel has the higher mean input and respond by driving the corresponding output unit to 1.
+class SensoryDiscrimination(Task):
+    """Simulated bilateral sensory discrimination task
+    On each trial the network receives two simultaneous noisy inputs into each of two input channels. 
+    The network must determine which channel has the higher mean input and respond by driving the corresponding output unit to 1 after the go cue, which occurs 1 second after the end of the stimulation.
+    When both inputs are the same, the target output is randomly generated and when both inputs = 0, then both outputs take on a value of 0.
     Takes two channels of noisy input (:attr:`N_in` = 2).
-    Two channel output (:attr:`N_out` = 2) with a one hot encoding (high value is 1, low value is .2) towards the higher mean channel.
-    Loosely based on `Britten, Kenneth H., et al. "The analysis of visual motion: a comparison of neuronal and psychophysical performance." Journal of Neuroscience 12.12 (1992): 4745-4765 <https://www.jneurosci.org/content/12/12/4745>`_
+    Two channels output (:attr:`N_out` = 2) with a one hot encoding (high value is 1, low value is 0) towards the higher mean channel.
+
+    There is also the option of adding simulated optogenetic stimulation to the task. The stimulation is applied at the same time as the stimulation through the 2 inputs.
+    This task is based on the bilateral sensory discrimination task developped by Oliver Gauld in the Hausser Lab UCL.
+    
     Args:
         dt (float): The simulation timestep.
         tau (float): The intrinsic time constant of neural state decay.
         T (float): The trial length.
         N_batch (int): The number of trials per training update.
-        coherence (float, optional): Amount by which the means of the two channels will differ. By default None.
-        direction (int, optional): Either 0 or 1, indicates which input channel will have higher mean input. By default None.
+        N_in (int) : The number of input nodes
+        N_rec (int) : The number of recurrent neurons
+        N_out (int) : The number of output neurons
+        opto (float) : The strength of the optogenetic stimulation
     """
 
-    def __init__(self, dt, tau, T, N_batch, N_in, N_rec, N_out, opto=True):
+    def __init__(self, dt, tau, T, N_batch, N_in, N_rec, N_out, opto):
         super(PerceptualDiscrimination,self).__init__(2, 2, dt, tau, T, N_batch)
         
         self.N_in = N_in
@@ -33,7 +40,6 @@ class PerceptualDiscrimination(Task):
         self.N_out = N_out
         self.opto = opto
         self.lo = 0.0 # Low value for one hot encoding
-
         self.hi = 1.0 # High value for one hot encoding
 
     def generate_trial_params(self, batch, trial):
@@ -42,14 +48,19 @@ class PerceptualDiscrimination(Task):
         Args:
             batch (int): The batch number that this trial is part of.
             trial (int): The trial number of the trial within the batch *batch*.
+            
         Returns:
             dict: Dictionary of trial parameters including the following keys:
             :Dictionary Keys: 
-                * **coherence** (*float*) -- Amount by which the means of the two channels will differ. :attr:`self.coherence` if not None, otherwise ``np.random.exponential(scale=1/5)``.
-                * **direction** (*int*) -- Either 0 or 1, indicates which input channel will have higher mean input. :attr:`self.direction` if not None, otherwise ``np.random.choice([0, 1])``.
+                * **intensity** (*float*) (x2) -- the intensity of the 1st (intensity_0) and the 2nd stimulus (intensity_1). Both stimuli are scaled independently and take on values 0.0, 0.2, 0.4 or 0.6.
                 * **stim_noise** (*float*) -- Scales the stimlus noise. Set to .1.
-                * **onset_time** (*float*) -- Stimulus onset time at 1/4th of total trial length
-                * **stim_duration** (*float*) -- Stimulus duration of 1/2 of total trial length.
+                * **onset_time** (*float*) -- Stimulus onset time at the onset of the trial
+                * **stim_duration** (*float*) -- Stimulus duration of 1/4th the trial time.
+                * **go_cue_onset** (*float*) -- Go cue onset after 3/4th the trial time.
+                * **go_cue_duration** (*float*) -- Duration of the go cue of 100th the trial time.
+                * **post_go_cue** (*float*) -- deactivation of the mask for 20th of the trial time.
+                
+        
         """
 
         # ----------------------------------
@@ -57,7 +68,7 @@ class PerceptualDiscrimination(Task):
         # ----------------------------------
         params = dict()
         prob_catch_trial = np.random.random()
-        if prob_catch_trial > 0.85:
+        if prob_catch_trial > 0.85:    #Catch trials (trials where both inputs are null) occur with a likelihood of at least 15%
            params['intensity_0'] = 0.0
            params['intensity_1'] = 0.0
         else:
@@ -67,16 +78,10 @@ class PerceptualDiscrimination(Task):
         params['random_output'] = np.random.choice([0,1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
-        params['stim_duration'] = 500
-        params['go_cue_onset'] = 1500
+        params['stim_duration'] = self.T/4
+        params['go_cue_onset'] = self.T*(3/4)
         params['go_cue_duration'] = self.T/100
         params['post_go_cue'] = self.T / 20
-        if self.opto == True:
-            params['intensity_opto'] = 0.6
-        elif self.opto == False:
-            params['intensity_opto'] = 0.0
-        params['end_opto'] = 500
-        params['N_in'] = 4
         
         return params
 
@@ -104,10 +109,6 @@ class PerceptualDiscrimination(Task):
         noise = params['stim_noise']
         go_onset = params['go_cue_onset']
         go_duration = params['go_cue_duration']
-        post_cue = params['post_go_cue']
-        
-        int_opto= params['intensity_opto'] 
-        end_opto = params['end_opto']
 
         # ----------------------------------
         # Initialize with noise
@@ -148,8 +149,8 @@ class PerceptualDiscrimination(Task):
                 y_t[0] = rand_out
                 y_t[1] = 1-rand_out
 
-        if t<end_opto:
-            x_t[3] = int_opto
+        if t<stim_dur:
+            x_t[3] = self.opto
             
         return x_t, y_t, mask_t
     
@@ -163,7 +164,6 @@ class PerceptualDiscrimination(Task):
         
         """
 
-
         chosen = np.argmax(np.mean(test_output*output_mask, axis=1), axis = 1)
         truth = np.argmax(np.mean(correct_output*output_mask, axis = 1), axis = 1)
         return np.mean(np.equal(truth, chosen))
@@ -171,7 +171,8 @@ class PerceptualDiscrimination(Task):
     def psychometric_curve(self, correct_output, train_params):
         """Calculates the percentage of choice 1 made by the model, depending on the coherence between input 0 and 1.'
         --> psychometric curve."""
-  
+        
+
         diff1_2 = []
         chosen = []
         for i in range(len(train_params)):
@@ -180,31 +181,17 @@ class PerceptualDiscrimination(Task):
                 if correct_output[i, 249, 0] > correct_output[i,249,1]:
                     chosen.append(1)
                 elif correct_output[i, 249, 1] > correct_output[i,249,0]:
-                    chosen.append(2)
-                else:
                     chosen.append(0)
-                    
-                    
+
+                   
         bins = np.array([-0.6, -0.4, -0.2,  0. ,  0.2,  0.4,  0.6])
         digitized = np.digitize(diff1_2, bins)
         diff1_2 = np.array(diff1_2)
         
-        chosen_proc = [[],[]]
-        bin_means = [[],[]]
-        frac_choice = [[],[]]
-        x = [1,2]
-        for j in range(2):
-            for i in range(len(chosen)):
-                if chosen[i]==x[j]:
-                    chosen_proc[j].append(1)
-                else:
-                    chosen_proc[j].append(0)
-            
-            chosen_proc[j] = np.array(chosen_proc[j])
-            bin_means[j] = np.array([chosen_proc[j][digitized == k].mean() for k in range(1, len(bins)+1)])
-            bin_means[j] = bin_means[j]*100
+        chosen = np.array(chosen)
+        bin_means = np.array([chosen[digitized == k].mean() for k in range(1, len(bins)+1)])
+        bin_means = bin_means*100
         
-            frac_choice[j] = len(chosen_proc[j][chosen_proc[j]==1])/len(chosen_proc[j])
-        
-        return bin_means, bins, frac_choice
-                
+        frac_choice = len(chosen[chosen==0])/len(chosen)
+    
+        return bin_means, bins, frac_choice                

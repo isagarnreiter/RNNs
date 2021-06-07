@@ -48,10 +48,10 @@ file_network_params['N_out'] = N_out
 file_network_params['rec_noise'] = 0.02
 #file_network_params.update(weights)
 #load weights 
-weights = dict(np.load('third_set_models/IpsiContra_In075_Rec10_Cal20_s15.npz', allow_pickle = True))
+weights = dict(np.load('third_set_models/IpsiContra_In05_Rec025_Cal20_s9.npz', allow_pickle = True))
 weights = weights['weights'].reshape(1)[0]
 weights = fcts.adapt_for_opto(weights)
-weights = fcts.change_opto_stim(weights, ipsi_pref)
+weights = fcts.change_opto_stim(weights, 12)
 file_network_params.update(weights)
 fileModel = Basic(file_network_params)
 
@@ -106,7 +106,7 @@ for i in range(av):
     
 model_output = np.transpose(model_output.reshape(av, 50, 250, 2), (1,0,2,3))
 model_state = np.transpose(model_state.reshape(av, 50, 250, 100), (1,0,2,3))
-#%% 
+x#%% 
 #calculate the PCA of the states of the network for multiple trials
 #get average trajectory for trials with the same parameters
 init_state = fileModel.get_weights()['init_state'].reshape(100)
@@ -246,8 +246,8 @@ plt.ylim(-5,105)
 
 
 #%%
-trial_nb = 23
-for i in range(len(mask[0])):
+trial_nb = 39
+for i in range(len(mask[trial_nb][0])):
     if mask[0,i][0] == 0:
         y[0,i] =+ np.nan
 
@@ -299,6 +299,16 @@ ax1.set_title('states of excitatory neuron in hemisphere 1 and 2 at T = 500 ms')
 ax1.legend()
 ax1.set_xlabel('stim in hem 1')
 ax1.set_ylabel('stim in hem 2')
+#%%
+x = np.linspace(0,990,100)
+plt.plot(x, np.mean(model_state[45,:,:,12],axis=0)[0:100], color='red')
+plt.plot(x, np.mean(control[46,:,:,12],axis=0)[0:100], color='grey')
+plt.fill_between(x, np.mean(control[46,:,:,12],axis=0)[0:100]-np.std(control[46,:,:,12],axis=0)[0:100], np.mean(control[46,:,:,12],axis=0)[0:100]+np.std(control[46,:,:,12],axis=0)[0:100], color='grey', alpha=0.3)
+plt.fill_between(x, np.mean(model_state[45,:,:,12],axis=0)[0:100]-np.std(model_state[45,:,:,12],axis=0)[0:100], np.mean(model_state[45,:,:,12],axis=0)[0:100]+np.std(model_state[45,:,:,12],axis=0)[0:100], color='red', alpha=0.3)
+plt.xlabel('time (ms)')
+plt.ylim(-0.02, 0.3)
+plt.yticks([0, 0.1, 0.2, 0.3])
 
+stat, p = stats.ttest_rel(model_state[45,:,50,12], control[46,:,50,12])
 #%%
 fileModel.destruct()

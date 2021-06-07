@@ -29,18 +29,6 @@ from sklearn.linear_model import LinearRegression
 import researchpy as rp
 import scipy.stats as stats
 
-def take_first(elem):
-    return elem[0]
-
-def take_second(elem):
-    return elem[1]
-
-def take_third(elem):
-    return elem[2]
-
-def take_fourth(elem):
-    return elem[3]
-
 #%%
 #load dataframes
 
@@ -194,39 +182,6 @@ plt.yticks([0.2, 0.1, 0, -0.1, -0.2])
 plt.ylabel('state')
 
 t_stat, p = stats.wilcoxon(state.loc[[1,2,3,5,6,7],['contra_I1']].values.reshape(6), state.loc[[1,2,3,5,6,7],['ipsi_I2']].values.reshape(6))
-#%%
-#make seperate dataframe with defined number of ipsi preferring cells
-
-model_best = first_set[first_set.columns[:]].to_numpy()
-columns = first_set.columns[:]
-
-indexes=[]
-for i in range(model_best.shape[0]):
-    if model_best[i][18]<=0 or model_best[i][19]<=1 or abs(model_best[i][18]-model_best[i][19]) >= 3:
-        indexes.append(i)
-    # elif abs(model_best[i][20]-model_best[i][21]) > 5:
-    #     indexes.append(i)
-    # elif model_best[i][23] > 0.4:
-    #     indexes.append(i)
-model_best = np.delete(model_best, indexes, axis=0)
-model_best = pd.DataFrame(model_best, columns = columns)
-
-
-#drop models with some kind of problem
-# exclusions = np.array(['IpsiContra_In05_Rec02_Col10_s2',
-#               'IpsiContra_In02_Rec07_Col40_s2',
-#               'IpsiContra_In02_Rec10_Col10_s2',
-#               'IpsiContra_In07_Rec07_Col10_s2',
-#               'IpsiContra_In10_Rec10_Col20_s1',
-#               'IpsiContra_In07_Rec01_Col20_s1'])
-
-# index=[]
-# for i in range(len(model_best['filename'])):
-#     if model_best['filename'][i][:-4] in exclusions:
-#         index.append(i)
-# model_best = model_best.drop(index)
-
-model_best.to_csv('UserFolder/neur0003/first_set_best.csv')
 
 #%%
 #Save trials
@@ -299,30 +254,6 @@ for item in os.listdir('/UserFolder/neur0003/third_set_models')[36:37]:
     
     #fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
 
-
-
-#%%
-#plot histogram of parameters in model_best file
-
-fig, ax = plt.subplots(2, 2, figsize=(5,5))
-
-x=0
-labels = ['P_in', 'P_rec', 'N_cal', 'seed']
-
-for i in [0,1]:
-    for j in [0,1]:        
-        ax[i,j].hist(first_set[[labels[x]]])
-        ax[i,j].set_xlabel(labels[x])
-        x=x+1
-        
-# ax[0,0].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
-# ax[0,1].set_xticks([0.08, 0.1, 0.25, 0.5, 0.75, 1])
-# ax[1,0].set_xticks([10, 20, 30, 40])
-# ax[1,1].set_xticks([0,1,2])
-
-plt.tight_layout()
-
-#check relation between different parameters and if different associations are more likely
 #%%
 #plot average fraction of ipsi preferring cells depending on P_rec and P_in
 
@@ -658,6 +589,11 @@ plt.fill_between(x, states_opto_arr[0][0:100]-states_opto_arr[1][0:100], states_
 
 plt.ylim(-0.12, 0.12)
 plt.yticks([-0.1, -0.05, 0, 0.05, 0.1])
+plt.xlabel('time (ms)')
+
+probs_opto = np.mean(states_opto_arr.reshape(40, 100, 250), axis=1)[:,50]
+probs_ctrl = np.mean(states_ctrl_arr.reshape(40, 100, 250), axis=1)[:,50]
+stat, p = stats.ttest_ind(probs_opto, probs_ctrl)
 #%%
 repla = coherences
 for i in coherences:

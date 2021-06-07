@@ -111,7 +111,7 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     input_connectivity[nb_excn:nb_excn*2, 0] = 0
     input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
     input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0    
-    
+    input_connectivity[:, 3] = 0
     
     return input_connectivity, rec_connectivity, output_connectivity
 
@@ -130,7 +130,6 @@ def gen_pol_trials(daleModel, pd, j, opto_stim, sim=False):
                                 'go_cue_onset': 1500, 
                                 'go_cue_duration': 25.0, 
                                 'post_go_cue': 125.0,
-                                'intensity_opto': opto_stim,
                                 'end_opto':500}
     
         x, y, mask = pd.generate_trial(params_single_trial) #generate input and output
