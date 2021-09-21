@@ -19,7 +19,7 @@ class SensoryDiscrimination(Task):
     Two channels output (:attr:`N_out` = 2) with a one hot encoding (high value is 1, low value is 0) towards the higher mean channel.
 
     There is also the option of adding simulated optogenetic stimulation to the task. The stimulation is applied at the same time as the stimulation through the 2 inputs.
-    This task is based on the bilateral sensory discrimination task developped by Oliver Gauld in the Hausser Lab UCL.
+    This task is based on the bilateral sensory discrimination task developped by Oliver Gauld in the Neural Computation Lab in the Wolfson Institute for Biomedical Research.
     
     Args:
         dt (float): The simulation timestep.
@@ -32,13 +32,18 @@ class SensoryDiscrimination(Task):
         opto (float) : The strength of the optogenetic stimulation
     """
 
-    def __init__(self, dt, tau, T, N_batch, N_in, N_rec, N_out, opto):
-        super(PerceptualDiscrimination,self).__init__(2, 2, dt, tau, T, N_batch)
+    def __init__(self, dt, tau, T, N_batch, N_rec, N_out, opto):
+        super(SensoryDiscrimination,self).__init__(2, 2, dt, tau, T, N_batch)
         
-        self.N_in = N_in
         self.N_rec = N_rec
         self.N_out = N_out
         self.opto = opto
+
+        if self.opto == 0.0:
+            self.N_in = 3
+        else:
+            self.N_in = 4
+        
         self.lo = 0.0 # Low value for one hot encoding
         self.hi = 1.0 # High value for one hot encoding
 
@@ -78,8 +83,8 @@ class SensoryDiscrimination(Task):
         params['random_output'] = np.random.choice([0,1])
         params['stim_noise'] = 0.1
         params['onset_time'] = 0
-        params['stim_duration'] = self.T/4
-        params['go_cue_onset'] = self.T*(3/4)
+        params['stim_duration'] = self.T/5
+        params['go_cue_onset'] = self.T*(3/5)
         params['go_cue_duration'] = self.T/100
         params['post_go_cue'] = self.T / 20
         
@@ -109,26 +114,34 @@ class SensoryDiscrimination(Task):
         noise = params['stim_noise']
         go_onset = params['go_cue_onset']
         go_duration = params['go_cue_duration']
+        post_cue = params['post_go_cue']
 
         # ----------------------------------
         # Initialize with noise
         # ----------------------------------
         x_t = np.sqrt(2*.01*np.sqrt(10)*np.sqrt(self.dt)*noise*noise)*np.random.randn(self.N_in) + 0.1
-        x_t[2] = 0
-        x_t[3] = 0
+        x_t[2:] = 0 
         
         y_t = np.zeros(self.N_out)
         mask_t = np.ones(self.N_out)
         # ----------------------------------
         # Compute values
         # ----------------------------------
+        
+        #during the period of the stimulus, the 2 stimulus channel are set to a random intensity between 0 and 0.6.
+        #optogenetic stimulation can be simulated by setting the opto parameter which is input to the channel during the stimulation time
         if stim_onset < t < stim_onset + stim_dur:
             x_t[0] += int_0
             x_t[1] += int_1
+            if self.N_in == 4:
+                x_t[3] += self.opto
         
+        
+        #before the response window, the output is set to the low value
         if t <= go_onset + post_cue:
             y_t =+ self.lo
             
+        #the go-cue is represented by a short spike before the response window
         if  go_onset < t < go_onset + go_duration:
             x_t[2] = 0.5
 
@@ -149,9 +162,6 @@ class SensoryDiscrimination(Task):
                 y_t[0] = rand_out
                 y_t[1] = 1-rand_out
 
-        if t<stim_dur:
-            x_t[3] = self.opto
-            
         return x_t, y_t, mask_t
     
    
@@ -170,28 +180,18 @@ class SensoryDiscrimination(Task):
     
     def psychometric_curve(self, correct_output, train_params):
         """Calculates the percentage of choice 1 made by the model, depending on the coherence between input 0 and 1.'
-        --> psychometric curve."""
-        
+        --> psychometric curve.
+        Catch trials are excluded."""
 
-        diff1_2 = []
-        chosen = []
+        diff1_2 = np.array([])
+        chosen = np.array([])
         for i in range(len(train_params)):
             if train_params[i]['intensity_0']!=0.0 or train_params[i]['intensity_1']!=0.0:
-                diff1_2.append(round(train_params[i]['intensity_0']-train_params[i]['intensity_1'], 2))
-                if correct_output[i, 249, 0] > correct_output[i,249,1]:
-                    chosen.append(1)
-                elif correct_output[i, 249, 1] > correct_output[i,249,0]:
-                    chosen.append(0)
+                diff1_2 = np.append(diff1_2, round(train_params[i]['intensity_0']-train_params[i]['intensity_1'], 2))
+                chosen = np.append(chosen, np.argmax(correct_output[i,249,:], axis=0))
 
-                   
         bins = np.array([-0.6, -0.4, -0.2,  0. ,  0.2,  0.4,  0.6])
         digitized = np.digitize(diff1_2, bins)
-        diff1_2 = np.array(diff1_2)
+        bin_means = (1-np.array([chosen[digitized == k].mean() for k in range(1, len(bins)+1)]))*100
         
-        chosen = np.array(chosen)
-        bin_means = np.array([chosen[digitized == k].mean() for k in range(1, len(bins)+1)])
-        bin_means = bin_means*100
-        
-        frac_choice = len(chosen[chosen==0])/len(chosen)
-    
-        return bin_means, bins, frac_choice                
+        return np.array([bin_means, bins], dtype=object)
