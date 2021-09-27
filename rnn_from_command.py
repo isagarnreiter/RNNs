@@ -6,7 +6,7 @@ Created on Fri Nov 13 20:49:12 2020
 """
 
 from psychrnn.backend.models.basic import Basic
-from oli_task_perturb import SensoryDiscrimination
+from sensory_discrimination_task import SensoryDiscrimination
 import tensorflow as tf
 import numpy as np
 import random

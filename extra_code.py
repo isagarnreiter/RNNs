@@ -266,3 +266,25 @@ ax.hist([mean_resp_all, mean_resp_best],  bins=10 , color=['red', 'blue'], label
 #ax.plot(xs, resp_best_dens(xs), c='blue', label='best')
 ax.legend()
 plt.show()
+
+#%%
+
+total_hem1 = np.array(third_set['nb_hem1_ipsi_pref'] + third_set['nb_hem1_contra_pref'])
+norm = colors.Normalize(vmin=0, vmax=total_hem1.max())
+
+fig_ratio,ax = plt.subplots(1,1,figsize=(6,6))
+
+for i in list(coherences.keys()):
+    if i[14] == '7' or i[14]=='5':
+        ratio = coherences[i][:,0]/(coherences[i][:,1]-coherences[i][:,0])
+        percent = (coherences[i][:,0]/coherences[i][:,1])*100
+        percent[np.isnan(percent)] = 0
+        ax.scatter(ratio, coherences[i][:,2]-coherences[i][:,3], s=20, alpha=0.8)
+
+ax.set_xlabel('ratio ipsi/contra')
+divider = make_axes_locatable(plt.gca())
+ax_cb = divider.new_horizontal(size="5%", pad=0.05)
+fig_ratio.add_axes(ax_cb)
+cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label='total activated cells')
+#ax.set_xlim(-0.04,2.04)
+ax.set_ylabel('<- choice 2 - choice 1 ->')

@@ -5,7 +5,7 @@ Created on Mon Mar 22 21:13:02 2021
 @author: Isabelle
 """
 
-import oli_task_perturb
+from sensory_discrimination_task import SensoryDiscrimination
 from matplotlib import pyplot as plt
 from psychrnn.backend.simulation import BasicSimulator
 from psychrnn.backend.models.basic import Basic
@@ -32,9 +32,18 @@ import researchpy as rp
 
 first_set = pd.read_pickle('/UserFolder/neur0003/first_set_models.pkl')
 third_set = pd.read_pickle('/UserFolder/neur0003/third_set_model.pkl')
+coherences = pd.read_pickle('/UserFolder/neur0003/coherences_ratio.pkl')
 
 #%%
-task_pert = oli_task_perturb.SensoryDiscrimination(dt = 10,
+sd = SensoryDiscrimination(dt = 10,
+                              tau = 100, 
+                              T = 2500, 
+                              N_batch = 100,
+                              N_rec = 100,
+                              N_out = 2,
+                              opto=0.0) # Initialize the task object
+
+sd_opto = SensoryDiscrimination(dt = 10,
                               tau = 100, 
                               T = 2500, 
                               N_batch = 100,
@@ -91,7 +100,7 @@ psychometric = np.array([np.mean(psychometric, axis=0), np.std(psychometric, axi
 
 #psychometric curve
 
-data = loadmat('C:/Users/Isabelle/Downloads/delay_task_symmetric_psychometric_data.mat')
+data = loadmat('C:/Users/Isabelle/Documents/GitHub/RNNs/delay_task_symmetric_psychometric_data.mat')
 trial_code, trial_choice = data['for_brendan']['trial_code'][0][0][0], data['for_brendan']['trial_choice'][0][0][0]
 bins = np.array([])
 
@@ -173,8 +182,6 @@ stats.f_oneway(file['total_active'][file['N_cal'] == 10],
                file['total_active'][file['N_cal'] == 30],
                file['total_active'][file['N_cal'] == 40])
 
-
-
 #%%
 #boxplot of the number of active cells and the fraction of ipsi preferring cells depending on sparse of dense networks.
 #uses as input the info. file (as pickle)
@@ -249,78 +256,43 @@ plt.ylabel('state')
 #t_stat, p = stats.wilcoxon(state.loc[[1,2,3,5,6,7],['contra_I1']].values.reshape(6), state.loc[[1,2,3,5,6,7],['ipsi_I2']].values.reshape(6))
 
 #%%
-#Save trials / visualise trials
+#Save trial / visualise trial
 n_range = [0,40]
-pourc = 100
-coh = 'both'
-dt = 10
-results = ['x', 'y', 'model_state', 'model_output']
-labels = ['Input', 'Expected Output', 'State of each Neuron', 'Output']
-lims = [(), (-0.1, 1.1), (-0.1, 1.1), (-0.5, 0.5)]
+coh = 'ipsi'
+s1 = 0.2
+s2 = 0.6
+model = 'IpsiContra_In05_Rec025_Cal20_s0.npz'
 
-for item in os.listdir('/UserFolder/neur0003/third_set_models'):
-    
-    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
-    if list(dalemodel_test.keys())[0] == 'arr_0':
-        dalemodel_test = dalemodel_test['arr_0'].reshape(-1)[0]
-    weights = fcts.adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
-    trials = dalemodel_test['trials'].reshape(1)[0]
-    stim_pref_dict = fcts.stim_pref_(trials)
-    
-    if coh == 'ipsi' or coh=='both':
-        arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
-        arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
-    if coh == 'contra':
-        arr1 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
-        arr2 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
-    
+dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{model}', allow_pickle=True))
+if list(dalemodel_test.keys())[0] == 'arr_0':
+    dalemodel_test = dalemodel_test['arr_0'].reshape(-1)[0]
+weights = fcts.adapt_for_opto(dalemodel_test['weights'].reshape(1)[0])
+trials = dalemodel_test['trials'].reshape(1)[0]
+stim_pref_dict = fcts.stim_pref_(trials)
+
+arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
+arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
+
+if coh == 'ipsi' or coh=='both':
     indices = fcts.count_pref(arr1, arr2, indices=True)
-    if coh =='both':
-        indices += fcts.count_pref(arr2, arr1, indices=True)
+if coh == 'contra':
+    indices = fcts.count_pref(arr2, arr1, indices=True)
+if coh =='both':
+    indices += fcts.count_pref(arr2, arr1, indices=True)
+
+weights_modif = fcts.change_opto_stim(weights, indices)
+simulator = BasicSimulator(weights = weights_modif , params = {'dt': 10, 'tau': 100})
+trial = fcts.gen_pol_trials(simulator, task_pert, [[s1,s2]], sim=True)
+
+#make a figure of the trials
+
+fig = fcts.visualise_trial(trial)
     
-    if n_range == [40,80]:
-        indices = np.array(np.zeros(40), indices).flatten()
-    
-    indices = indices[:int(pourc/100*len(indices))]
-    
-    weights_modif = fcts.change_opto_stim(weights, indices)
-    simulator = BasicSimulator(weights = weights_modif , params = {'dt': 10, 'tau': 100})
-    trial_equal = fcts.gen_pol_trials(simulator, task_pert, [[0.4,0.2]], sim=True)
-    
-    #make a figure of the trials
-    
-    for i in range(len(trial_equal['1:0.4_2:0.2']['mask'])):
-        if trial_equal['1:0.4_2:0.2']['mask'][i][0] == 0:
-            trial_equal['1:0.4_2:0.2']['y'][i] =+ np.nan
-    
-    x_len = range(0,len(trial_equal['1:0.4_2:0.2']['x'])*dt,dt)
-    data = {'H1':trial_equal['1:0.4_2:0.2']['model_state'][:,0:40], 'H2':trial_equal['1:0.4_2:0.2']['model_state'][:,40:80]}
-    keys = list(data.keys())
-    
-    fig2, ax = plt.subplots(2, 3, figsize=(30,8))
-    fig2.suptitle(f'Trial for: {item} with opto stim to {pourc}% {coh} cells in Hem1', fontsize=16)
-    x=0
-    for i in range(2):
-        for j in range(2):
-            ax[i,j].plot(x_len, trial_equal['1:0.4_2:0.2'][results[x]])
-            ax[i,j].set_title(labels[x], fontsize = 14)
-            x= x+1
-            
-        ax[i,2].plot(x_len, data[keys[i]], alpha=0.9)
-        ax[i,2].set_ylim(-0.8,0.8)
-        ax[i,2].set_title(f"{keys[i]}", fontsize = 14)
-    
-    for i in range(3):
-        ax[1,i].set_xlabel("Time (ms)", fontsize = 10)
-        
-    ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
-    ax[1,1].set_ylim(-0.02, 1.02)
-    fig2.tight_layout()
-    
-    #fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
+#fig2.savefig(f'UserFolder/neur0003/trial_third_set/{item[0:-4]}_{l}')
 
 #%%
 #plot average fraction of ipsi preferring cells depending on P_rec and P_in
+#issue with the colormap
 
 file = first_set
 P_rec = [0.08, 0.1, 0.25, 0.5, 0.75, 1.0]
@@ -382,82 +354,8 @@ figure4.add_axes(ax_cb)
 cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label=c.name)
 
 #%%
-# find choice of network depending on ratio and total number of cells activated
-# iterations determined by nb_trials per model, with varying number of stimulation of ipsi preferring and contra preferring cells
-# for each model outputs an array (nb_trials*4) with each subarray containing in order:
-# number of stimulated cells that are ipsi preferring
-# number of stimulated cells
-# value of output 1 at t = 2500 ms
-# value of output 2 at t = 2500 ms
-# get recurrent weight distribution for each model
-# get state distribution for each model
-
-weight_distrib = {}
-state_distrib = {}
-coherences = {}
-activity_all = {}
-nb_trials = 100
-n_range = [0,40]
-for item in os.listdir('/UserFolder/neur0003/third_set_models'):
-    coherences[item] = np.array([])
-    print(item)
-    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
-    weigths_pre = dalemodel_test['weights'].reshape(1)[0]
-    
-    trials = dalemodel_test['trials'].reshape(1)[0]
-    stim_pref_dict = fcts.stim_pref_(trials)
-    weight_distrib[item] = weigths_pre['W_rec']
-    arr1 = stim_pref_dict['max_hem1stim'][n_range[0]:n_range[1]]
-    arr2 = stim_pref_dict['max_hem2stim'][n_range[0]:n_range[1]]
-    
-    # simulator = BasicSimulator(weights=weigths_pre , params = {'dt': 10, 'tau':100})
-    # x, y, mask, params = task.get_trial_batch()
-    # outputs, states = simulator.run_trials(x)
-    
-    # states = np.sort(states.reshape(50000, 100), axis=1)
-    # states = np.array([np.mean(states, axis=0), np.std(states, axis=0)])
-    # state_distrib[item] = states
-    
-    weights = fcts.adapt_for_opto(weigths_pre)
-
-    # activity = [np.mean(arr2[indices_ipsi_pref]), np.mean(arr1[indices_ipsi_pref]), np.mean(arr2[indices_contra_pref]), np.mean(arr1[indices_contra_pref])]
-    # activity_all[item] = activity
-    
-    for i in range(nb_trials):
-        indices_contra_pref = fcts.count_pref(arr1, arr2, indices=True)
-        indices_ipsi_pref = fcts.count_pref(arr2, arr1, indices=True)
-        if len(indices_contra_pref) != 0:
-            n = np.random.choice(range(len(indices_contra_pref)+1))
-        else:
-            n = 0
-        indices_contra_pref = random.sample(indices_contra_pref, n)
-        
-        if len(indices_ipsi_pref) != 0:
-            n = np.random.choice(range(len(indices_ipsi_pref)+1))
-        else:
-            n = 0
-        indices_ipsi_pref = random.sample(indices_ipsi_pref, n)
-        
-        #indices= np.delete(np.linspace(0,39,40).astype(int), indices_ipsi_pref+indices_contra_pref)        
-        #indices = np.linspace(0,39,40).astype(int)
-        #n = np.random.choice(range(len(indices)+1))
-        #indices = random.sample(list(indices), n)
-        #indices = indices_ipsi_pref + indices_contra_pref
-        indices=random.randint(0,40)
-        
-        weights_modif = fcts.change_opto_stim(weights, indices)
-        simulator = BasicSimulator(weights=weights_modif , params = {'dt': 10, 'tau':100, 'rec_noise':0.02})
-        trials = fcts.gen_pol_trials(simulator, task_pert, [[0.4,0.4]], sim=True)
-        
-        #coherences[item] = np.append(coherences[item], np.array([len(indices_ipsi_pref), len(indices), trials['hem1stim']['model_output'][249][0], trials['hem1stim']['model_output'][249][1]]))
-        coherences[item] = np.append(coherences[item], trials['1:0.4_2:0.4']['model_state'][:,indices])
-            
-    coherences[item] = coherences[item].reshape(nb_trials, 250)
-
-
-#%%
 # plot activity with and without stimulation
-#would need to run above code twice - once with and wihtout stimulation to be able to plot this
+# would need to run above code twice - once with and wihtout stimulation to be able to plot this
 states_opto_arr = np.array(list(states_opto.values())).reshape(4000,250)
 states_ctrl_arr = np.array(list(states_ctrl.values())).reshape(4000,250)
 
@@ -476,44 +374,8 @@ plt.xlabel('time (ms)')
 probs_opto = np.mean(states_opto_arr.reshape(40, 100, 250), axis=1)[:,50]
 probs_ctrl = np.mean(states_ctrl_arr.reshape(40, 100, 250), axis=1)[:,50]
 stat, p = stats.ttest_ind(probs_opto, probs_ctrl)
-#%%
-repla = coherences.copy()
-for i in coherences:
-    for j in coherences[i]:
-        coherences[i][j] = np.array(coherences[i][j])
 
-f = open("/UserFolder/neur0003/coherences_ratio.pkl","wb")
-pickle.dump(coherences,f)
-f.close()
 
-coherences = pd.read_pickle('/UserFolder/neur0003/coherences_ratio.pkl')
-items = list(coherences.keys())
-
-coherences.pop('IpsiContra_In05_Rec025_Cal20_s19.npz')
-weight_distrib.pop('IpsiContra_In05_Rec025_Cal20_s19.npz')
-state_distrib.pop('IpsiContra_In05_Rec025_Cal20_s19.npz')
-
-#%%
-
-total_hem1 = np.array(third_set['nb_hem1_ipsi_pref'] + third_set['nb_hem1_contra_pref'])
-norm = colors.Normalize(vmin=0, vmax=total_hem1.max())
-
-fig_ratio,ax = plt.subplots(1,1,figsize=(6,6))
-
-for i in list(coherences.keys()):
-    if i[14] == '7' or i[14]=='5':
-        ratio = coherences[i][:,0]/(coherences[i][:,1]-coherences[i][:,0])
-        percent = (coherences[i][:,0]/coherences[i][:,1])*100
-        percent[np.isnan(percent)] = 0
-        ax.scatter(ratio, coherences[i][:,2]-coherences[i][:,3], s=20, alpha=0.8)
-
-ax.set_xlabel('ratio ipsi/contra')
-divider = make_axes_locatable(plt.gca())
-ax_cb = divider.new_horizontal(size="5%", pad=0.05)
-fig_ratio.add_axes(ax_cb)
-cb1 = colorbar.ColorbarBase(ax_cb, norm=norm, orientation='vertical', label='total activated cells')
-#ax.set_xlim(-0.04,2.04)
-ax.set_ylabel('<- choice 2 - choice 1 ->')
 #%%
 
 #code for %choice ipsi vs %stimulated ipsi cells
@@ -571,8 +433,8 @@ key = list(coherences_copy.keys())
 coherence_arr = np.array([])
 
 model = [['sparse','5'], ['dense','7']]
-fig_type = 'ipsi/contra'
-k=1
+fig_type = 'nb/ratio'
+k=0
 for i in range(len(key)):
     if key[i][14] == model[k][1]:
         total_active = int(third_set[third_set['filename']==key[i]]['nb_hem1_ipsi_pref'])+int(third_set[third_set['filename']==key[i]]['nb_hem1_contra_pref'])
@@ -581,18 +443,14 @@ for i in range(len(key)):
         total_stim = np.round(coherences_copy[key[i]][:,1]/total_active, decimals = 1)
         ratio_ipsi_contra = np.round(np.log(coherences[key[i]][:,0]/(coherences_copy[key[i]][:,1]-coherences_copy[key[i]][:,0])), decimals=1)
 
-        choice = np.random.randn(len(ipsi))
-        choice[coherences_copy[key[i]][:,2]>coherences_copy[key[i]][:,3]] = 1
-        choice[coherences_copy[key[i]][:,2]<coherences_copy[key[i]][:,3]] = 2
         choice = coherences_copy[key[i]][:,2]-coherences_copy[key[i]][:,3]
         if fig_type == 'nb/ratio':
             coherence_arr = np.append(coherence_arr, np.array([total_stim, ratio_ipsi_contra, choice]))
         elif fig_type == 'ipsi/contra':
             coherence_arr = np.append(coherence_arr, np.array([ipsi, contra, choice]))
-
     
-coherence_arr = np.transpose(coherence_arr.reshape(20,3,100), (0,2,1))
-coherence_arr = coherence_arr.reshape(coherence_arr.shape[0]*100,3)
+coherence_arr = np.transpose(coherence_arr.reshape(20,3,30), (0,2,1))
+coherence_arr = coherence_arr.reshape(coherence_arr.shape[0]*30,3)
 
 mean_coh = []
 if fig_type == 'nb/ratio':  
@@ -637,7 +495,7 @@ elif fig_type == 'nb/ratio':
     plt.colorbar(plt.imshow(mean_coh[:,:,2], cmap=cm.get_cmap('RdBu'), vmin=-1, vmax=1, aspect='auto'))
     
 #%%
-#choice matrix for ipsi/contra stim
+#choice matrix for ipsi/contra stim corrected for the control matrix 
 
 cq = mean_weak[:,:,2] - mean_control[:,:,2]
 plt.imshow(cq, cmap=cm.get_cmap('RdBu'), vmin=-1, vmax=1)
@@ -646,19 +504,10 @@ plt.xticks([0,1,2,3,4,5,6,7,8,9,10], labels=x)
 plt.xlabel('contra')
 plt.ylabel('ipsi')
 plt.title('strong stim-control for dense network')
-#%%
-r = np.array([])
-for item in activity_all:
-    if item[14]=='7':
-        if activity_all[item][0] >0:
-            r = np.append(r,activity_all[item])
-        
-r = r.reshape(18,4)
-plt.boxplot(r)
-plt.ylim(-0.3, 1)
 
 #%% 
 # stimulate all random amount of cells, all but Ipsi or contra preferring cells and see effect on choice.
+#issue here
 
 key = list(coherences.keys())
 coherence_arr = np.array([])
@@ -675,10 +524,10 @@ for i in range(len(key)):
 
         coherence_arr = np.append(coherence_arr, np.array([activated, choice]))
 
-coherence_arr = np.transpose(coherence_arr.reshape(20,2, 200), (0,2,1))
+coherence_arr = np.transpose(coherence_arr.reshape(20,2, 30), (0,2,1))
 #coherence_arr = coherence_arr.reshape(coherence_arr.shape[0]*200,2)
 bins = np.linspace(0,1,11)
-digitized = np.digitize(coherence_arr[:,:,0], bins)
+digitized = np.digitize(coherence_arr[:,:,1], bins)
 meancoh = []
 for i in range(coherence_arr.shape[0]):
     m = np.array([np.mean(coherence_arr[i,:,1][digitized[i] == k]) for k in range(1, len(bins)+1)])
@@ -713,6 +562,12 @@ plt.ylim(-1.1, 1.1)
 plt.title(f'stimulating inactive cells in {model[k][0]} networks')
 #%%
 # plot the weight distribution for the sparse model and the dense model
+
+weight_distrib = {}
+for item in os.listdir('/UserFolder/neur0003/third_set_models'):
+    dalemodel_test = dict(np.load(f'/UserFolder/neur0003/third_set_models/{item}', allow_pickle=True))
+    weigths_pre = dalemodel_test['weights'].reshape(1)[0]
+    weight_distrib[item] = weigths_pre['W_rec']
 
 
 weight_distrib_arr = [np.array([]),np.array([])]

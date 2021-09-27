@@ -65,13 +65,11 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     np.random.shuffle(rec_connectivity)
     rec_connectivity = rec_connectivity.reshape(N_rec, N_rec)
 
-
     output_connectivity = np.zeros((N_out * N_rec))
     output_connectivity[0:int(P_out*N_out*N_rec)] = 1
     np.random.shuffle(output_connectivity)
     output_connectivity = output_connectivity.reshape(N_out, N_rec)
-    
-    
+
     #set basic connectivity with differences in the number of neurons with colossal projections
     
     output_connectivity[:, nb_excn*2:N_rec] = 0
@@ -92,8 +90,6 @@ def initialise_connectivity(params, N_callosal, P_in, P_rec, P_out):
     input_connectivity[nb_excn*2:N_rec-nb_inhn, 1] = 0
     input_connectivity[N_rec-nb_inhn:N_rec, 0] = 0
 
-    
-    
     return input_connectivity, rec_connectivity, output_connectivity
 
 
@@ -105,7 +101,7 @@ def gen_pol_trials(daleModel, sd, inputs, sim=False):
     
     trials = {}
     for i in range(len(inputs)):
-        trials[f'1:{inputs[i][0]}_2:{inputs[i][1]}'] = {}
+        trials[f'{inputs[i][0]}_{inputs[i][1]}'] = {}
         params_single_trial = sd.generate_trial_params(0,0)
         params_single_trial['intensity_0'] = inputs[i][0]
         params_single_trial['intensity_1'] = inputs[i][1]
@@ -117,9 +113,44 @@ def gen_pol_trials(daleModel, sd, inputs, sim=False):
         elif sim==True:
             model_output, model_state = daleModel.run_trials(x)
         
-        trials[f'1:{inputs[i][0]}_2:{inputs[i][1]}'] = {'x':x[0], 'y':y[0], 'model_output': model_output[0], 'model_state':model_state[0]}
+        trials[f'{inputs[i][0]}_{inputs[i][1]}'] = {'x':x[0], 'y':y[0], 'mask':mask[0], 'model_output': model_output[0], 'model_state':model_state[0]}
         
     return trials
+
+
+def visualise_trial(trials):
+    "receives as input the result of a the gen_pol_trials function"
+    
+    key = list(trials.keys())[0]
+    x = trials[key]['x']
+    y = trials[key]['y']
+    mask = trials[key]['mask']
+    model_output = trials[key]['model_output']
+    model_states = trials[key]['model_state']
+    
+    y[mask==0] = np.nan
+    dt = 10
+    
+    fig2, ax = plt.subplots(2,2,figsize=(20,8))
+    
+    z=0
+    zipp = [x,y,model_states, model_output]
+    titles = ['Input', 'Target Output', 'States', 'Output']
+    for i in range(2):
+        for j in range(2):
+            ax[i,j].plot(range(0, len(zipp[z][:,:])*dt,dt), zipp[z][:,:], linewidth=3)
+            ax[i,j].set_title(titles[z], fontsize=16)
+            ax[i,j].set_ylim(-0.1,1.1)
+            ax[i,j].set_yticks([0,1])
+            ax[1,j].set_xlabel("Time (ms)", fontsize = 12)
+            z+=1
+            
+    ax[0,0].legend(["Input Channel 1", "Input Channel 2", 'go cue'])
+    ax[1,0].set_ylim(-0.8, 0.8)
+    ax[1,0].set_yticks([-0.5, 0, 0.5])
+    
+    fig2.tight_layout()
+        
 
 def count_pref(array1, array2, indices=False):
     
